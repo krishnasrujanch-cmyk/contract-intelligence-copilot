@@ -1,23 +1,20 @@
 """
-ChromaDB client — vector store for clause embeddings.
+ChromaDB client — embedded persistent mode (no separate server needed).
 
-Architecture:
-  - Single persistent ChromaDB client (HTTP mode connecting to Docker service)
-  - Two collections: clauses + org_templates
-  - Role-based where filters applied at retrieval time (RBAC at data layer)
-  - Embeddings generated locally via sentence-transformers (zero API cost)
+Embedded mode: ChromaDB runs in-process, stores data to disk.
+Production upgrade path: switch to HttpClient pointing to dedicated ChromaDB container.
 
 RBAC enforcement:
   admin    → no filter         (all org clauses)
   reviewer → contract_id filter (assigned contracts only)
-  viewer   → chunk_level=0     (document summaries only, no clause text)
+  viewer   → chunk_level=0     (document summaries only)
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import chromadb
-from chromadb import HttpClient
 from chromadb.config import Settings as ChromaSettings
 
 from app.core.config import settings
@@ -26,30 +23,30 @@ from app.domain.enums import ChunkLevel, UserRole
 
 logger = get_logger(__name__)
 
-# ── Module-level client (singleton) ───────────────────────────────────────────
-_client:              chromadb.HttpClient | None = None
-_clauses_collection:  Any = None
+# ── Module-level singletons ───────────────────────────────────────────────────
+_client:               chromadb.ClientAPI | None = None
+_clauses_collection:   Any = None
 _templates_collection: Any = None
+
+# Persistent storage path inside the container / workspace
+_CHROMA_PATH = Path("/workspaces/contract-intelligence-copilot/backend/chroma_data")
 
 
 async def initialise_chroma() -> None:
     """
-    Connect to the ChromaDB Docker service and initialise collections.
-    Called once at application startup via main.py lifespan.
+    Initialise embedded ChromaDB client.
+    Called once at FastAPI startup via lifespan.
     """
     global _client, _clauses_collection, _templates_collection
 
     try:
-        _client = chromadb.HttpClient(
-            host=settings.chromadb_host,
-            port=settings.chromadb_port,
+        _CHROMA_PATH.mkdir(parents=True, exist_ok=True)
+
+        _client = chromadb.PersistentClient(
+            path=str(_CHROMA_PATH),
             settings=ChromaSettings(anonymized_telemetry=False),
         )
 
-        # Verify connectivity
-        _client.heartbeat()
-
-        # Get or create collections
         _clauses_collection = _client.get_or_create_collection(
             name=settings.chromadb_collection_clauses,
             metadata={"hnsw:space": "cosine"},
@@ -60,9 +57,8 @@ async def initialise_chroma() -> None:
         )
 
         logger.info(
-            "chromadb_connected",
-            host=settings.chromadb_host,
-            port=settings.chromadb_port,
+            "chromadb_embedded_initialised",
+            path=str(_CHROMA_PATH),
             clause_count=_clauses_collection.count(),
         )
 
@@ -72,7 +68,6 @@ async def initialise_chroma() -> None:
 
 
 def get_clauses_collection() -> Any:
-    """Return the clauses collection. Raises if not initialised."""
     if _clauses_collection is None:
         raise RuntimeError("ChromaDB not initialised. Call initialise_chroma() first.")
     return _clauses_collection
@@ -84,59 +79,39 @@ def build_role_filter(
     assigned_contract_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """
-    Build a ChromaDB where filter enforcing RBAC.
-
-    This is the core security control — role restrictions are applied
-    at the data retrieval layer, not in the LLM prompt.
-    Prompt injection cannot bypass this filter.
-
-    Args:
-        role:                  User's role (admin/reviewer/viewer)
-        org_id:                Organisation ID — always scoped
-        assigned_contract_ids: Required for reviewer role
-
-    Returns:
-        ChromaDB where filter dict
+    Build ChromaDB where filter enforcing RBAC at data layer.
+    Role restrictions applied before LLM sees any data — injection-proof.
     """
-    # All queries are org-scoped — no cross-tenant leakage
-    base_filter: dict[str, Any] = {"org_id": {"$eq": org_id}}
+    base: dict[str, Any] = {"org_id": {"$eq": org_id}}
 
     if role == UserRole.ADMIN.value:
-        # Admin: full access to all org clauses
-        return base_filter
+        return base
 
     elif role == UserRole.REVIEWER.value:
-        # Reviewer: only assigned contracts
         if not assigned_contract_ids:
-            # No assignments — return empty result set safely
-            return {**base_filter, "contract_id": {"$eq": "NO_ACCESS"}}
+            return {**base, "contract_id": {"$eq": "NO_ACCESS"}}
         return {
             "$and": [
-                base_filter,
+                base,
                 {"contract_id": {"$in": assigned_contract_ids}},
             ]
         }
 
-    else:
-        # Viewer: summary-level chunks only (chunk_level = 0)
+    else:  # viewer
         return {
             "$and": [
-                base_filter,
+                base,
                 {"chunk_level": {"$eq": ChunkLevel.DOCUMENT.value}},
             ]
         }
 
 
 def upsert_clause_embeddings(
-    clause_ids:  list[str],
-    embeddings:  list[list[float]],
-    documents:   list[str],
-    metadatas:   list[dict[str, Any]],
+    clause_ids: list[str],
+    embeddings: list[list[float]],
+    documents:  list[str],
+    metadatas:  list[dict[str, Any]],
 ) -> None:
-    """
-    Upsert clause embeddings into ChromaDB.
-    Uses upsert (not add) — idempotent on reprocessing.
-    """
     collection = get_clauses_collection()
     collection.upsert(
         ids=clause_ids,
@@ -152,12 +127,6 @@ def query_clauses(
     where_filter:    dict[str, Any],
     n_results:       int = 10,
 ) -> dict[str, Any]:
-    """
-    Query the clauses collection with RBAC filter.
-
-    Returns ChromaDB query result dict with:
-      documents, metadatas, distances, ids
-    """
     collection = get_clauses_collection()
     return collection.query(
         query_embeddings=[query_embedding],
@@ -168,10 +137,6 @@ def query_clauses(
 
 
 def delete_contract_embeddings(contract_id: str, org_id: str) -> None:
-    """
-    Remove all embeddings for a contract from ChromaDB.
-    Called when a contract is deleted from the system.
-    """
     collection = get_clauses_collection()
     collection.delete(
         where={
