@@ -1,0 +1,11 @@
+[tool.bandit]
+exclude_dirs = ["tests", "alembic"]
+skips = ["B101"]  # Allow assert in tests
+
+[tool.isort]
+profile = "black"
+known_first_party = ["app"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]

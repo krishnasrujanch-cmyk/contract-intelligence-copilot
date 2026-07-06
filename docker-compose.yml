@@ -1,0 +1,183 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Contract Intelligence Copilot — Docker Compose
+# Services: postgres | redis | chromadb | fastapi | celery_worker | frontend
+# Usage:    docker compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-common-env: &common-env
+  env_file: .env
+
+x-backend-build: &backend-build
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+    target: runtime
+  <<: *common-env
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    chromadb:
+      condition: service_healthy
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: clm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-clm_db}
+      POSTGRES_USER:     ${POSTGRES_USER:-clm_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clm_user} -d ${POSTGRES_DB:-clm_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [clm_net]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: clm_redis
+    restart: unless-stopped
+    # AOF persistence ensures data survives restarts
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks: [clm_net]
+
+  # ── ChromaDB ───────────────────────────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: clm_chromadb
+    restart: unless-stopped
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chroma_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [clm_net]
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────
+  fastapi:
+    <<: *backend-build
+    container_name: clm_fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/keys:/app/keys:ro   # JWT RS256 key pair — read-only mount
+      - contract_uploads:/app/uploads # Uploaded contract files
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 2
+      --log-level info
+      --access-log
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks: [clm_net]
+
+  # ── Celery Worker ──────────────────────────────────────────────────────────
+  celery_worker:
+    <<: *backend-build
+    container_name: clm_celery
+    volumes:
+      - ./backend/keys:/app/keys:ro
+      - contract_uploads:/app/uploads
+    command: >
+      celery -A app.tasks.worker worker
+      --loglevel=info
+      --concurrency=2
+      --queues=document_processing,alerts
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.tasks.worker", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks: [clm_net]
+
+  # ── Celery Beat (Scheduler) ────────────────────────────────────────────────
+  celery_beat:
+    <<: *backend-build
+    container_name: clm_celery_beat
+    volumes:
+      - ./backend/keys:/app/keys:ro
+    command: >
+      celery -A app.tasks.worker beat
+      --loglevel=info
+      --scheduler celery.beat:PersistentScheduler
+    networks: [clm_net]
+
+  # ── React Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: clm_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [clm_net]
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  chroma_data:
+    driver: local
+  contract_uploads:
+    driver: local
+
+networks:
+  clm_net:
+    driver: bridge
+    name: clm_network

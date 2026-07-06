@@ -1,0 +1,28 @@
+# =============================================================================
+# Development & CI dependencies — NOT installed in production Docker image
+# =============================================================================
+
+-r requirements.txt
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+factory-boy==3.3.1
+Faker==33.1.0             # Realistic test data generation
+respx==0.21.1             # Mock httpx requests in tests
+freezegun==1.5.1          # Mock datetime.now() in tests
+
+# ── Code Quality & Security Gates ─────────────────────────────────────────────
+black==24.10.0
+isort==5.13.2
+flake8==7.1.1
+flake8-bugbear==24.10.31  # Opinionated bugbear checks
+bandit==1.8.0             # OWASP static security analysis
+mypy==1.13.0              # Static type checking
+pre-commit==4.0.1
+
+# ── Type Stubs ───────────────────────────────────────────────────────────────
+types-redis==4.6.0.20241004
+types-passlib==1.7.7.20240819

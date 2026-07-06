@@ -1,0 +1,64 @@
+# =============================================================================
+# Contract Intelligence Copilot — .gitignore
+# Security: ensure no secrets, keys, or sensitive data are committed
+# =============================================================================
+
+# ── CRITICAL: Never commit these ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example          # Template with placeholders IS committed
+
+# JWT key pair — generate locally with scripts/generate_keys.sh
+backend/keys/private.pem
+backend/keys/public.pem
+backend/keys/*.pem
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.dmypy.json
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Docker volumes are managed by Docker — not committed
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ── Uploads (contract files — never commit real contracts) ───────────────────
+backend/uploads/
+test_contracts/*.pdf
+test_contracts/*.docx
+!test_contracts/.gitkeep
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Alembic ───────────────────────────────────────────────────────────────────
+# Migration files ARE committed (they define schema history)
+# But never commit temp files
+alembic/versions/__pycache__/
