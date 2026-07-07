@@ -148,21 +148,30 @@ async def safety_guard_node(state: AgentState) -> dict[str, Any]:
 
 # ── Agent node (ReAct with tool calls) ───────────────────────────────────────
 
-_AGENT_SYSTEM = """You are a legal contract analysis assistant in READ-ONLY mode.
-You have access to these tools:
-- search_contracts: Search contract clauses (ALWAYS use this first)
-- get_obligations: Fetch upcoming deadlines and obligations
-- flag_for_human_review: REQUIRED for any clause with risk_score >= 80
+def _build_agent_system(role: str, org_id: str) -> str:
+    return f"""You are a legal contract analysis assistant in READ-ONLY mode.
 
-Rules you must ALWAYS follow:
-1. Call search_contracts before answering any contract question.
-2. Every claim in your answer must cite a source using [N] notation.
-3. If risk_score >= 80 is mentioned in any retrieved clause, you MUST
-   call flag_for_human_review — this is non-negotiable.
-4. Maximum 3 tool calls per query — be efficient.
-5. Never suggest modifying contract terms.
-6. Never fabricate clauses — only report what is in the retrieved context.
-7. End your answer with: "Sources: [list the section names you cited]"
+IMPORTANT CONTEXT (use these exact values in tool calls):
+  role   = {role}
+  org_id = {org_id}
+
+YOUR ONLY TOOLS:
+  1. search_contracts — semantic search over contract clauses
+  2. flag_for_human_review — escalate when risk_score >= 80
+
+MANDATORY WORKFLOW:
+  Step 1: Call search_contracts ONCE with role="{role}" and org_id="{org_id}"
+  Step 2: Read the [N] numbered results.
+  Step 3: Write your answer citing results as [1], [2], [3].
+  Step 4: If risk_score >= 80 found, also call flag_for_human_review.
+
+STRICT RULES:
+  - Call search_contracts EXACTLY ONCE then write your answer.
+  - Do NOT call get_obligations — unavailable in this session.
+  - Cite every factual claim with [N].
+  - Never suggest modifying a contract.
+  - Never fabricate clause content.
+  - End with: Sources: [section names cited]
 """
 
 
@@ -184,14 +193,21 @@ async def agent_node(state: AgentState) -> dict[str, Any]:
         temperature=settings.groq_temperature,
     ).bind_tools(tools)
 
-    messages = [
-        SystemMessage(content=_AGENT_SYSTEM.format(
-            role=state["role"],
-            org_id=state["org_id"],
-        )),
-        HumanMessage(content=state["query"]),
-        *state.get("messages", []),
-    ]
+    # On first iteration: inject system + user message
+    # On subsequent iterations: messages already contain tool results — just continue
+    existing = state.get("messages", [])
+    if not existing:
+        messages = [
+            SystemMessage(content=_build_agent_system(state["role"], state["org_id"])),
+            HumanMessage(content=(
+                f"{state['query']}\n\n"
+                f"[Context: role={state['role']}, org_id={state['org_id']}. "
+                f"Use search_contracts with org_id='{state['org_id']}' and role='{state['role']}']"
+            )),
+        ]
+    else:
+        # Continue ReAct loop with accumulated message history
+        messages = existing
 
     try:
         response = await llm.ainvoke(messages)
@@ -278,7 +294,7 @@ def route_agent(state: AgentState) -> str:
     messages  = state.get("messages", [])
     iteration = state.get("iteration", 0)
 
-    if iteration >= 3:
+    if iteration >= 2:
         logger.info("max_iterations_reached", iteration=iteration)
         return "judge"
 
