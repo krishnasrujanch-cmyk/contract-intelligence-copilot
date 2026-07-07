@@ -1,0 +1,30 @@
+[
+  {
+    "test": "Turn 1 — Initial query (no prior context)",
+    "prior_turns": 0,
+    "answer": "I was unable to generate a sufficiently cited answer for this query. Please try rephrasing your question or ensure the relevant contract has been uploaded and processed.",
+    "passed": false
+  },
+  {
+    "test": "Turn 2 — Follow-up (should remember liability cap)",
+    "prior_turns": 1,
+    "answer": "Agent error: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kmmb4rphed9bznwshzcna2gn` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99939, Requested 773. Please try again in 10m15.168s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+    "passed": true
+  },
+  {
+    "test": "Turn 3 — Session recall (should reference prior turns)",
+    "prior_turns": 2,
+    "answer": "Agent error: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kmmb4rphed9bznwshzcna2gn` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99938, Requested 954. Please try again in 12m50.688s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+    "passed": true
+  },
+  {
+    "test": "Turn 4 — Different session (should have no memory of Session A)",
+    "prior_turns": 0,
+    "answer": "Agent error: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kmmb4rphed9bznwshzcna2gn` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99938, Requested 1017. Please try again in 13m45.12s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+    "passed": true
+  },
+  {
+    "test": "Session clear",
+    "passed": true
+  }
+]
