@@ -1,0 +1,133 @@
+{
+  "phase": "7_feedback_analytics",
+  "clause_stats": [
+    {
+      "clause_type": "confidentiality",
+      "llm_avg_score": 50.0,
+      "expert_avg_score": 22.5,
+      "bias": 27.5,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "indemnification",
+      "llm_avg_score": 70.0,
+      "expert_avg_score": 45.0,
+      "bias": 25.0,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "governing_law",
+      "llm_avg_score": 20.0,
+      "expert_avg_score": 0.0,
+      "bias": 20.0,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "liability",
+      "llm_avg_score": 70.0,
+      "expert_avg_score": 52.5,
+      "bias": 17.5,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "payment",
+      "llm_avg_score": 20.0,
+      "expert_avg_score": 35.0,
+      "bias": -15.0,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "termination",
+      "llm_avg_score": 40.0,
+      "expert_avg_score": 25.0,
+      "bias": 15.0,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "ip_ownership",
+      "llm_avg_score": 30.0,
+      "expert_avg_score": 20.0,
+      "bias": 10.0,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "auto_renewal",
+      "llm_avg_score": 47.5,
+      "expert_avg_score": 55.0,
+      "bias": -7.5,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    },
+    {
+      "clause_type": "force_majeure",
+      "llm_avg_score": 25.0,
+      "expert_avg_score": 20.0,
+      "bias": 5.0,
+      "feedback_count": 0,
+      "positive_rate": 0.0
+    }
+  ],
+  "calibration_deltas": [
+    {
+      "clause_type": "confidentiality",
+      "correction": -27.5,
+      "confidence": 0.6,
+      "reason": "LLM scores 27.5 points above expert baseline for 'confidentiality' clauses. Adjust scores lower by ~28 points."
+    },
+    {
+      "clause_type": "indemnification",
+      "correction": -25.0,
+      "confidence": 0.6,
+      "reason": "LLM scores 25.0 points above expert baseline for 'indemnification' clauses. Adjust scores lower by ~25 points."
+    },
+    {
+      "clause_type": "governing_law",
+      "correction": -20.0,
+      "confidence": 0.6,
+      "reason": "LLM scores 20.0 points above expert baseline for 'governing_law' clauses. Adjust scores lower by ~20 points."
+    },
+    {
+      "clause_type": "liability",
+      "correction": -17.5,
+      "confidence": 0.6,
+      "reason": "LLM scores 17.5 points above expert baseline for 'liability' clauses. Adjust scores lower by ~18 points."
+    },
+    {
+      "clause_type": "payment",
+      "correction": 0.0,
+      "confidence": 0.6,
+      "reason": "Bias of -15.0 is within natural variance (±15). No adjustment."
+    },
+    {
+      "clause_type": "termination",
+      "correction": 0.0,
+      "confidence": 0.6,
+      "reason": "Bias of +15.0 is within natural variance (±15). No adjustment."
+    },
+    {
+      "clause_type": "ip_ownership",
+      "correction": 0.0,
+      "confidence": 0.6,
+      "reason": "Bias of +10.0 is within natural variance (±15). No adjustment."
+    },
+    {
+      "clause_type": "auto_renewal",
+      "correction": 0.0,
+      "confidence": 0.6,
+      "reason": "Bias of -7.5 is within natural variance (±15). No adjustment."
+    },
+    {
+      "clause_type": "force_majeure",
+      "correction": 0.0,
+      "confidence": 0.6,
+      "reason": "Bias of +5.0 is within natural variance (±15). No adjustment."
+    }
+  ]
+}
