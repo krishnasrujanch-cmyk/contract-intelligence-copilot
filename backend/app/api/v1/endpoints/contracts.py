@@ -19,7 +19,7 @@ import uuid
 from pathlib import Path
 
 import aiofiles
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -238,7 +238,7 @@ async def get_contract(
 
 # ── DELETE /contracts/{contract_id} ──────────────────────────────────────────
 
-@router.delete("/{contract_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete contract (admin only)")
+@router.delete("/{contract_id}", status_code=status.HTTP_200_OK, summary="Delete contract (admin only)")
 async def delete_contract(
     contract_id:  str,
     current_user: AdminUser = None,
