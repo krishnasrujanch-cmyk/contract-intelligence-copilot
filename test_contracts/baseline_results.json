@@ -1,0 +1,76 @@
+{
+  "phase": "3a_baseline_regex",
+  "contract": "sample_nda.txt",
+  "metrics": {
+    "method": "regex_baseline",
+    "clauses_found": 1,
+    "clauses_expected": 10,
+    "true_positives": 1,
+    "false_positives": 0,
+    "false_negatives": 9,
+    "precision": 1.0,
+    "recall": 0.1,
+    "f1_score": 0.182,
+    "risk_scoring": "NOT SUPPORTED \u2014 requires LLM",
+    "processing_time_seconds": 0.0004,
+    "missed_clauses": [
+      {
+        "id": 1,
+        "type": "confidentiality",
+        "title": "1.1 Confidential Information Definition"
+      },
+      {
+        "id": 2,
+        "type": "confidentiality",
+        "title": "2.3 Confidentiality Term 5 Years"
+      },
+      {
+        "id": 3,
+        "type": "ip_ownership",
+        "title": "3.1 IP Ownership Disclosing Party Retains Rights"
+      },
+      {
+        "id": 5,
+        "type": "termination",
+        "title": "4.2 Termination for Convenience 30 Days"
+      },
+      {
+        "id": 6,
+        "type": "liability",
+        "title": "5.1 Consequential Damages Exclusion"
+      },
+      {
+        "id": 7,
+        "type": "liability",
+        "title": "5.2 Direct Damages Cap USD 50000"
+      },
+      {
+        "id": 8,
+        "type": "indemnification",
+        "title": "5.3 Mutual Indemnification"
+      },
+      {
+        "id": 9,
+        "type": "payment",
+        "title": "6.1 Dataset Access Fee USD 25000 30 Days"
+      },
+      {
+        "id": 10,
+        "type": "force_majeure",
+        "title": "8.1-8.3 Force Majeure"
+      }
+    ]
+  },
+  "extracted_clauses": [
+    {
+      "clause_type": "auto_renewal",
+      "title": "automatically renew for successive one (1) year",
+      "risk_score": null,
+      "text_preview": "automatically renew for successive one (1) year\nperiods unless either Party provides written notice of non-renewal at least sixty (60)\ndays prior to the expiration of the then-current term.\n\n4.2 Termi"
+    }
+  ],
+  "documented_limitations": [
+    "LIMITATION 1 \u2014 Vocabulary brittleness: Regex matches only explicit ARTICLE/SECTION markers. Contracts using numbered clauses or subsections are missed. Section 5.2 (liability cap) is not detected as a standalone clause \u2014 it lacks a top-level ARTICLE marker.",
+    "LIMITATION 2 \u2014 Zero semantic understanding: Cannot distinguish force majeure clause from text that merely mentions the term. Cannot extract USD amounts, notice periods, or dates. Risk scoring is impossible \u2014 regex has no concept of legal risk."
+  ]
+}

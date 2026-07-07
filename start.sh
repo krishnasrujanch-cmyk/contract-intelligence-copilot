@@ -61,3 +61,36 @@ fi
 
 # Keep script running so FastAPI logs are visible
 wait $FASTAPI_PID
+
+# ── Auto-reindex ChromaDB if empty ───────────────────────────────────────────
+echo "🔍 Checking ChromaDB state..."
+python3 - << 'PYEOF'
+import sys
+sys.path.insert(0, "/workspaces/contract-intelligence-copilot/backend")
+
+import os
+os.environ.setdefault("GROQ_API_KEY", os.environ.get("GROQ_API_KEY", ""))
+
+try:
+    import chromadb
+    from chromadb.config import Settings
+    client = chromadb.PersistentClient(
+        path="/workspaces/contract-intelligence-copilot/backend/chroma_data",
+        settings=Settings(anonymized_telemetry=False),
+    )
+    col = client.get_or_create_collection("clm_clauses")
+    count = col.count()
+    print(f"   ChromaDB: {count} vectors found")
+
+    if count == 0:
+        print("   ChromaDB empty — reindexing sample NDA...")
+        from app.agents.rag.pipeline import RAGPipeline
+        from pathlib import Path
+        text = Path("/workspaces/contract-intelligence-copilot/test_contracts/sample_nda.txt").read_text()
+        n = RAGPipeline().index_contract(text, "test-nda-phase4", "test-org-phase4")
+        print(f"   ✅ Reindexed: {n} chunks stored")
+    else:
+        print(f"   ✅ ChromaDB intact — no reindex needed")
+except Exception as e:
+    print(f"   ⚠ ChromaDB check failed: {e}")
+PYEOF

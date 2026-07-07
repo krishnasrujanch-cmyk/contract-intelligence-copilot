@@ -1,0 +1,125 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement ("Agreement") is entered into as of January 15, 2026
+("Effective Date"), by and between:
+
+Acme Technologies Pvt. Ltd., a company incorporated under the laws of India, having its
+registered office at 42 Tech Park, Whitefield, Bengaluru, Karnataka 560066
+("Disclosing Party / Party A")
+
+AND
+
+GlobalVentures Inc., a corporation incorporated under the laws of Delaware, United States,
+having its principal place of business at 200 Park Avenue, New York, NY 10166
+("Receiving Party / Party B")
+
+ARTICLE 1. DEFINITIONS
+
+1.1 Confidential Information. "Confidential Information" means any and all information or
+data that has or could have commercial value, including technical data, trade secrets,
+know-how, research, product plans, products, services, customers, software (including
+source and object code), AI algorithms, model weights, training data, and evaluation
+benchmarks disclosed by the Disclosing Party either directly or indirectly.
+
+1.2 Exclusions. Confidential Information shall not include information that: (a) is or
+becomes publicly available through no fault of the Receiving Party; (b) was rightfully
+known to the Receiving Party prior to disclosure; (c) is rightfully obtained from a third
+party without restriction; or (d) is independently developed without use of Confidential
+Information.
+
+ARTICLE 2. CONFIDENTIALITY OBLIGATIONS
+
+2.1 Non-Disclosure. Each Party agrees to: (a) hold all Confidential Information of the
+other Party in strict confidence; (b) not disclose to any third party without prior written
+consent; (c) use solely for the Business Purpose; and (d) protect using the same degree
+of care it uses for its own confidential information, but no less than reasonable care.
+
+2.2 Permitted Disclosures. Each Party may disclose to employees, officers, directors,
+contractors, and legal advisors who have a need to know and are bound by equivalent
+confidentiality obligations.
+
+2.3 Confidentiality Term. The confidentiality obligations shall remain in full force for
+five (5) years from the Effective Date, regardless of whether this Agreement is terminated.
+
+ARTICLE 3. INTELLECTUAL PROPERTY
+
+3.1 Ownership. All Confidential Information shall remain the sole and exclusive property
+of the Disclosing Party. Nothing herein grants any rights, by license or otherwise.
+
+3.2 No License. This Agreement does not grant any right, title, or interest in any
+intellectual property including patents, trademarks, copyrights, or trade secrets.
+
+3.3 Work Product. Any joint work product shall be governed by a separate written agreement.
+
+ARTICLE 4. TERM AND TERMINATION
+
+4.1 Term. This Agreement commences on the Effective Date and continues for two (2) years.
+Upon expiration, this Agreement shall automatically renew for successive one (1) year
+periods unless either Party provides written notice of non-renewal at least sixty (60)
+days prior to the expiration of the then-current term.
+
+4.2 Termination for Convenience. Either Party may terminate upon thirty (30) days prior
+written notice to the other Party.
+
+4.3 Effect of Termination. Upon termination, each Party shall promptly return or destroy
+all Confidential Information and certify such destruction within fifteen (15) days.
+
+4.4 Survival. Confidentiality obligations survive termination for five (5) years.
+
+ARTICLE 5. LIABILITY AND INDEMNIFICATION
+
+5.1 Limitation of Liability. IN NO EVENT SHALL EITHER PARTY BE LIABLE FOR ANY INDIRECT,
+INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGES.
+
+5.2 Direct Damages Cap. Each Party's total cumulative liability for any and all claims
+shall not exceed United States Dollars Fifty Thousand (USD 50,000), regardless of the
+form of action or theory of liability.
+
+5.3 Indemnification. Each Party shall indemnify, defend, and hold harmless the other
+Party from all losses, damages, liabilities, claims, and expenses including reasonable
+attorneys fees arising from any breach of this Agreement.
+
+ARTICLE 6. PAYMENT TERMS
+
+6.1 Fees. Party B agrees to pay Party A a one-time access fee of United States Dollars
+Twenty-Five Thousand (USD 25,000) within thirty (30) days of the Effective Date.
+
+6.2 Late Payment. Unpaid amounts shall accrue interest at one and one-half percent
+(1.5%) per month from the due date until paid.
+
+ARTICLE 7. GOVERNING LAW AND DISPUTE RESOLUTION
+
+7.1 Governing Law. This Agreement is governed by the laws of the State of Delaware,
+without regard to conflict of law provisions.
+
+7.2 Dispute Resolution. Disputes shall be settled by binding arbitration under AAA
+Commercial Arbitration Rules in New York, New York.
+
+ARTICLE 8. FORCE MAJEURE
+
+8.1 Force Majeure Event. Neither Party shall be liable for failure or delay caused by
+circumstances beyond reasonable control, including acts of God, pandemic, war, terrorism,
+civil unrest, or governmental action.
+
+8.2 Notice and Mitigation. The affected Party shall provide written notice within five
+(5) business days and use commercially reasonable efforts to mitigate effects.
+
+8.3 Extended Force Majeure. If the event continues for ninety (90) consecutive days,
+either Party may terminate upon ten (10) days written notice.
+
+ARTICLE 9. GENERAL PROVISIONS
+
+9.1 Entire Agreement. This Agreement constitutes the entire agreement and supersedes
+all prior agreements regarding the subject matter hereof.
+
+9.2 Amendment. No amendment is valid unless made in writing and executed by both Parties.
+
+9.3 Assignment. Neither Party may assign without prior written consent, not to be
+unreasonably withheld. Assignment permitted in merger or acquisition.
+
+IN WITNESS WHEREOF, the Parties have executed this Agreement as of the Effective Date.
+
+ACME TECHNOLOGIES PVT. LTD.          GLOBALVENTURES INC.
+By: Rajesh Kumar, CEO                 By: Sarah Mitchell, CLO
+Date: January 15, 2026                Date: January 15, 2026

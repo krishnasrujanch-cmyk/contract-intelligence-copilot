@@ -1,0 +1,239 @@
+{
+  "phase": "4_rag_test",
+  "contract_id": "test-nda-phase4",
+  "chunks_indexed": 36,
+  "admin_results": [
+    {
+      "query": "What is the liability cap in this contract?",
+      "role": "admin",
+      "answer": "The liability cap in this contract is United States Dollars Fifty Thousand (USD 50,000) [1].",
+      "citations": [
+        {
+          "index": 1,
+          "section_path": "ARTICLE 5. > 5.2",
+          "clause_type": "unknown",
+          "relevance": 0.602
+        },
+        {
+          "index": 2,
+          "section_path": "ARTICLE 5. > ARTICLE 5.",
+          "clause_type": "unknown",
+          "relevance": 0.534
+        },
+        {
+          "index": 3,
+          "section_path": "ARTICLE 5. > 5.1",
+          "clause_type": "unknown",
+          "relevance": 0.484
+        },
+        {
+          "index": 4,
+          "section_path": "[DOCUMENT SUMMARY]",
+          "clause_type": "unknown",
+          "relevance": 0.366
+        },
+        {
+          "index": 5,
+          "section_path": "ARTICLE 2. > 2.3",
+          "clause_type": "unknown",
+          "relevance": 0.319
+        },
+        {
+          "index": 6,
+          "section_path": "ARTICLE 4. > 4.4",
+          "clause_type": "unknown",
+          "relevance": 0.317
+        }
+      ],
+      "confidence": 0.437
+    },
+    {
+      "query": "What are the confidentiality obligations?",
+      "role": "admin",
+      "answer": "The confidentiality obligations are outlined in [1] and detailed in [5], which state that each Party agrees to: \n(a) hold all Confidential Information of the other Party in strict confidence; \n(b) not disclose to any third party without prior written consent; \n(c) use solely for the Business Purpose; and \n(d) protect using the same degree of care it uses for its own confidential information, but no less than reasonable care [5].",
+      "citations": [
+        {
+          "index": 1,
+          "section_path": "ARTICLE 2. > ARTICLE 2.",
+          "clause_type": "unknown",
+          "relevance": 0.958
+        },
+        {
+          "index": 2,
+          "section_path": "ARTICLE 2. > 2.2",
+          "clause_type": "unknown",
+          "relevance": 0.688
+        },
+        {
+          "index": 3,
+          "section_path": "ARTICLE 2. > 2.3",
+          "clause_type": "unknown",
+          "relevance": 0.65
+        },
+        {
+          "index": 4,
+          "section_path": "ARTICLE 1. > 1.1",
+          "clause_type": "unknown",
+          "relevance": 0.647
+        },
+        {
+          "index": 5,
+          "section_path": "ARTICLE 2. > 2.1",
+          "clause_type": "unknown",
+          "relevance": 0.641
+        },
+        {
+          "index": 6,
+          "section_path": "ARTICLE 4. > 4.4",
+          "clause_type": "unknown",
+          "relevance": 0.596
+        }
+      ],
+      "confidence": 0.697
+    },
+    {
+      "query": "When does the contract auto-renew and what is the notice period?",
+      "role": "admin",
+      "answer": "The contract automatically renews for successive one (1) year periods unless either Party provides written notice of non-renewal at least sixty (60) days prior to the expiration of the then-current term [1].",
+      "citations": [
+        {
+          "index": 1,
+          "section_path": "ARTICLE 4. > 4.1",
+          "clause_type": "unknown",
+          "relevance": 0.697
+        },
+        {
+          "index": 2,
+          "section_path": "ARTICLE 8. > 8.3",
+          "clause_type": "unknown",
+          "relevance": 0.448
+        },
+        {
+          "index": 3,
+          "section_path": "ARTICLE 4. > 4.2",
+          "clause_type": "unknown",
+          "relevance": 0.434
+        },
+        {
+          "index": 4,
+          "section_path": "ARTICLE 2. > 2.3",
+          "clause_type": "unknown",
+          "relevance": 0.385
+        },
+        {
+          "index": 5,
+          "section_path": "ARTICLE 8. > 8.2",
+          "clause_type": "unknown",
+          "relevance": 0.376
+        },
+        {
+          "index": 6,
+          "section_path": "ARTICLE 4. > 4.3",
+          "clause_type": "unknown",
+          "relevance": 0.316
+        }
+      ],
+      "confidence": 0.443
+    },
+    {
+      "query": "What happens in a force majeure event?",
+      "role": "admin",
+      "answer": "In a Force Majeure Event, neither Party shall be liable for failure or delay caused by circumstances beyond reasonable control [2]. If the event continues for ninety (90) consecutive days, either Party may terminate upon ten (10) days written notice [3].",
+      "citations": [
+        {
+          "index": 1,
+          "section_path": "ARTICLE 8. > ARTICLE 8.",
+          "clause_type": "unknown",
+          "relevance": 0.73
+        },
+        {
+          "index": 2,
+          "section_path": "ARTICLE 8. > 8.1",
+          "clause_type": "unknown",
+          "relevance": 0.644
+        },
+        {
+          "index": 3,
+          "section_path": "ARTICLE 8. > 8.3",
+          "clause_type": "unknown",
+          "relevance": 0.559
+        },
+        {
+          "index": 4,
+          "section_path": "ARTICLE 5. > 5.3",
+          "clause_type": "unknown",
+          "relevance": 0.251
+        },
+        {
+          "index": 5,
+          "section_path": "ARTICLE 7. > ARTICLE 7.",
+          "clause_type": "unknown",
+          "relevance": 0.219
+        },
+        {
+          "index": 6,
+          "section_path": "ARTICLE 4. > 4.3",
+          "clause_type": "unknown",
+          "relevance": 0.209
+        }
+      ],
+      "confidence": 0.435
+    },
+    {
+      "query": "What are the payment terms and amounts?",
+      "role": "admin",
+      "answer": "The payment terms are as follows: \n- Party B agrees to pay Party A a one-time access fee of USD 25,000 within 30 days of the Effective Date [3].\n- Unpaid amounts shall accrue interest at 1.5% per month from the due date until paid [2].",
+      "citations": [
+        {
+          "index": 1,
+          "section_path": "ARTICLE 6. > ARTICLE 6.",
+          "clause_type": "unknown",
+          "relevance": 0.833
+        },
+        {
+          "index": 2,
+          "section_path": "ARTICLE 6. > 6.2",
+          "clause_type": "unknown",
+          "relevance": 0.501
+        },
+        {
+          "index": 3,
+          "section_path": "ARTICLE 6. > 6.1",
+          "clause_type": "unknown",
+          "relevance": 0.345
+        },
+        {
+          "index": 4,
+          "section_path": "ARTICLE 9. > 9.1",
+          "clause_type": "unknown",
+          "relevance": 0.294
+        },
+        {
+          "index": 5,
+          "section_path": "ARTICLE 4. > ARTICLE 4.",
+          "clause_type": "unknown",
+          "relevance": 0.287
+        },
+        {
+          "index": 6,
+          "section_path": "ARTICLE 5. > 5.3",
+          "clause_type": "unknown",
+          "relevance": 0.277
+        }
+      ],
+      "confidence": 0.423
+    }
+  ],
+  "viewer_result": {
+    "answer": "This information is not found in the provided contract clauses.",
+    "citations": [
+      {
+        "index": 1,
+        "section_path": "[DOCUMENT SUMMARY]",
+        "clause_type": "unknown",
+        "relevance": 0.332
+      }
+    ],
+    "confidence": 0.332
+  }
+}
