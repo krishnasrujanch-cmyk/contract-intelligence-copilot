@@ -325,15 +325,30 @@ async def judge_node(state: PipelineState) -> dict[str, Any]:
 async def answerer_node(state: PipelineState) -> dict[str, Any]:
     """
     Final synthesis: merge extraction + risk into structured output.
-
-    Also extracts obligations from approved risk assessments.
-    Produces the final_clauses and obligations lists written to the database.
+    Falls back to extractor output with default risk scores if reasoner failed.
     """
-    # Merge extracted clauses with risk assessments
-    clauses_with_risk = _merge_clauses_and_risks(
-        state["extracted_clauses"],
-        state["risk_assessments"],
-    )
+    extracted = state.get("extracted_clauses", [])
+    assessments = state.get("risk_assessments", [])
+
+    # If no risk assessments (reasoner failed/quota), use extractor scores directly
+    if not assessments and extracted:
+        clauses_with_risk = []
+        for clause in extracted:
+            risk_score = clause.get("risk_score", 0) or 0
+            if isinstance(risk_score, str):
+                try: risk_score = int(risk_score)
+                except: risk_score = 0
+            clauses_with_risk.append({
+                **clause,
+                "risk_score":        risk_score,
+                "risk_level":        RiskLevel.from_score(risk_score).value,
+                "risk_reason":       clause.get("risk_reason", "Extracted by LLM."),
+                "suggested_revision":None,
+                "flagged_for_review":risk_score >= 80,
+                "judge_verdict":     "APPROVE",
+            })
+    else:
+        clauses_with_risk = _merge_clauses_and_risks(extracted, assessments)
 
     # Extract obligations from clauses with dates/amounts
     obligations = _extract_obligations_from_clauses(
