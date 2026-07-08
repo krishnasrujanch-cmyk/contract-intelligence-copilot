@@ -37,6 +37,10 @@ class SearchContractsInput(BaseModel):
         default=None,
         description="Contract IDs accessible to reviewer. Null for admin/viewer.",
     )
+    contract_id: Optional[str] = Field(
+        default=None,
+        description="Scope search to a single contract UUID. Use when user asks about a specific contract.",
+    )
     n_results: int = Field(default=6, ge=1, le=8, description="Max chunks to retrieve")
 
     @field_validator("n_results", mode="before")
@@ -88,6 +92,7 @@ class SearchContractsTool(BaseTool):
             org_id=org_id,
             assigned_contract_ids=assigned_contract_ids,
             n_results=n_results,
+            contract_id=contract_id,
         )
 
         if not chunks:

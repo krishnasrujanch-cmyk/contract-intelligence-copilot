@@ -40,6 +40,8 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     query:       str  = Field(..., min_length=1, max_length=2000)
     contract_id: str | None = None   # Optional: scope to single contract
+    # If None: searches ALL contracts (may mix results from multiple contracts)
+    # If set: scopes to that contract only (recommended when user selects a contract)
 
 
 class CitedSource(BaseModel):

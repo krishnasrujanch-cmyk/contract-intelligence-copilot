@@ -205,6 +205,7 @@ class RAGRetriever:
         org_id: str,
         assigned_contract_ids: list[str] | None = None,
         n_results: int = 6,
+        contract_id: str | None = None,
     ) -> list[dict[str, Any]]:
         model      = _get_embed_model()
         collection = _get_collection()
@@ -215,7 +216,15 @@ class RAGRetriever:
 
         query_vec    = model.encode([query])[0].tolist()
         where_filter = RoleFilter.build(role, org_id, assigned_contract_ids)
-        n            = min(n_results, collection.count())
+
+        # Scope to specific contract if provided — prevents cross-contract collision
+        if contract_id:
+            if "$and" in where_filter:
+                where_filter["$and"].append({"contract_id": {"$eq": contract_id}})
+            else:
+                where_filter = {"$and": [where_filter, {"contract_id": {"$eq": contract_id}}]}
+
+        n = min(n_results, collection.count())
 
         results   = collection.query(
             query_embeddings=[query_vec],
