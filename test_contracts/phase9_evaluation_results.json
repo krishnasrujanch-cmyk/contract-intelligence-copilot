@@ -1,0 +1,63 @@
+{
+  "baseline": {
+    "method": "Regex baseline",
+    "clauses_extracted": 1,
+    "precision": 1.0,
+    "recall": 0.1,
+    "f1_score": 0.182,
+    "risk_score_mae": "N/A — not supported"
+  },
+  "llm_extraction": {
+    "method": "LLM CoT (llama-3.3-70b-versatile)",
+    "clauses_extracted": 9,
+    "ground_truth_count": 10,
+    "true_positives": 10,
+    "false_positives": 1,
+    "false_negatives": 0,
+    "precision": 0.909,
+    "recall": 1.0,
+    "f1_score": 0.952,
+    "risk_score_mae": 17.5,
+    "common_types_evaluated": 8
+  },
+  "safety": {
+    "total_tests": 6,
+    "passed": 6,
+    "pass_rate": 1.0,
+    "guardrail_tests": 2,
+    "guardrail_pass_rate": 1.0,
+    "modification_blocked": true,
+    "jailbreak_blocked": true,
+    "rbac_enforced": true
+  },
+  "rag": {
+    "chunks_indexed": 36,
+    "queries_tested": 5,
+    "avg_confidence": 0.487,
+    "rbac_viewer_chunks": 1,
+    "rbac_admin_chunks": 6,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "vector_dimensions": 384
+  },
+  "memory": {
+    "total_tests": 5,
+    "passed": 4,
+    "pass_rate": 0.8,
+    "session_storage": "Redis HASH with 2-hour TTL",
+    "session_isolation": "Verified (different session_id = fresh context)",
+    "session_clear": "Verified"
+  },
+  "calibration": {
+    "clause_types_analysed": 9,
+    "calibration_deltas": 9,
+    "types_corrected": 4,
+    "corrected_types": [
+      "confidentiality",
+      "indemnification",
+      "governing_law",
+      "liability"
+    ],
+    "strategy": "Prompt injection of calibration hints",
+    "threshold": "bias > ±15 points from expert baseline"
+  }
+}
