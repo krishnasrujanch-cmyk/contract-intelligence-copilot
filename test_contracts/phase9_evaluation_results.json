@@ -1,63 +1,89 @@
 {
   "baseline": {
-    "method": "Regex baseline",
-    "clauses_extracted": 1,
+    "method": "regex_baseline",
+    "clauses_found": 1,
+    "clauses_expected": 10,
+    "true_positives": 1,
+    "false_positives": 0,
+    "false_negatives": 9,
     "precision": 1.0,
     "recall": 0.1,
     "f1_score": 0.182,
-    "risk_score_mae": "N/A — not supported"
+    "risk_scoring": "NOT SUPPORTED \u2014 requires LLM",
+    "processing_time_seconds": 0.0004,
+    "missed_clauses": [
+      {
+        "id": 1,
+        "type": "confidentiality",
+        "title": "1.1 Confidential Information Definition"
+      },
+      {
+        "id": 2,
+        "type": "confidentiality",
+        "title": "2.3 Confidentiality Term 5 Years"
+      },
+      {
+        "id": 3,
+        "type": "ip_ownership",
+        "title": "3.1 IP Ownership Disclosing Party Retains Rights"
+      },
+      {
+        "id": 5,
+        "type": "termination",
+        "title": "4.2 Termination for Convenience 30 Days"
+      },
+      {
+        "id": 6,
+        "type": "liability",
+        "title": "5.1 Consequential Damages Exclusion"
+      },
+      {
+        "id": 7,
+        "type": "liability",
+        "title": "5.2 Direct Damages Cap USD 50000"
+      },
+      {
+        "id": 8,
+        "type": "indemnification",
+        "title": "5.3 Mutual Indemnification"
+      },
+      {
+        "id": 9,
+        "type": "payment",
+        "title": "6.1 Dataset Access Fee USD 25000 30 Days"
+      },
+      {
+        "id": 10,
+        "type": "force_majeure",
+        "title": "8.1-8.3 Force Majeure"
+      }
+    ]
   },
-  "llm_extraction": {
-    "method": "LLM CoT (llama-3.3-70b-versatile)",
-    "clauses_extracted": 9,
-    "ground_truth_count": 10,
-    "true_positives": 10,
-    "false_positives": 1,
-    "false_negatives": 0,
+  "llm_cot": {
     "precision": 0.909,
     "recall": 1.0,
-    "f1_score": 0.952,
-    "risk_score_mae": 17.5,
-    "common_types_evaluated": 8
+    "f1": 0.952,
+    "tp": 10,
+    "fp": 1,
+    "fn": 0,
+    "risk_count": 9,
+    "avg_risk": 45.0
   },
   "safety": {
-    "total_tests": 6,
+    "total": 6,
     "passed": 6,
-    "pass_rate": 1.0,
-    "guardrail_tests": 2,
-    "guardrail_pass_rate": 1.0,
-    "modification_blocked": true,
-    "jailbreak_blocked": true,
-    "rbac_enforced": true
+    "guardrail_pass": 2
   },
   "rag": {
-    "chunks_indexed": 36,
-    "queries_tested": 5,
-    "avg_confidence": 0.487,
-    "rbac_viewer_chunks": 1,
-    "rbac_admin_chunks": 6,
-    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-    "vector_dimensions": 384
+    "chunks": 36,
+    "avg_confidence": 0.487
   },
   "memory": {
-    "total_tests": 5,
-    "passed": 4,
-    "pass_rate": 0.8,
-    "session_storage": "Redis HASH with 2-hour TTL",
-    "session_isolation": "Verified (different session_id = fresh context)",
-    "session_clear": "Verified"
+    "total": 5,
+    "passed": 4
   },
   "calibration": {
-    "clause_types_analysed": 9,
-    "calibration_deltas": 9,
-    "types_corrected": 4,
-    "corrected_types": [
-      "confidentiality",
-      "indemnification",
-      "governing_law",
-      "liability"
-    ],
-    "strategy": "Prompt injection of calibration hints",
-    "threshold": "bias > ±15 points from expert baseline"
+    "types_analysed": 9,
+    "corrected": 4
   }
 }
