@@ -123,7 +123,7 @@ async def upload_contract(
         action=AuditAction.CONTRACT_UPLOAD.value,
         resource_type="contract",
         resource_id=uuid.UUID(contract_id),
-        context={"filename_length": len(file.filename or "")},
+        log_context={"filename_length": len(file.filename or "")},
     ))
 
     await db.flush()  # Get DB ID before queuing

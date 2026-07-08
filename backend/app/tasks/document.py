@@ -85,7 +85,7 @@ async def _run_pipeline(contract_id: str, org_id: str) -> dict:
 
         # Chunk
         chunker = LegalChunker()
-        chunks  = chunker.chunk(masked_text, contract_id, org_id, parse_result.tables)
+        chunks  = chunker.chunk(masked_text, contract_id, org_id)
 
         # Embed
         from sentence_transformers import SentenceTransformer
@@ -100,9 +100,9 @@ async def _run_pipeline(contract_id: str, org_id: str) -> dict:
             metadatas   =[{
                 "contract_id":  contract_id,
                 "org_id":       org_id,
-                "chunk_level":  c.chunk_level.value,
+                "chunk_level":  c.level,
                 "section_path": c.section_path,
-                "is_table":     c.is_table,
+                "is_table":     getattr(c, 'is_table', False),
             } for c in chunks],
         )
 

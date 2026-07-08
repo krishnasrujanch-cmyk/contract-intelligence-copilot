@@ -91,7 +91,7 @@ async def create_user(
         user_role=current_user.role,
         action=AuditAction.USER_CREATED.value,
         resource_type="user",
-        context={"new_user_role": body.role.value},
+        log_context={"new_user_role": body.role.value},
     ))
 
     await db.flush()
@@ -142,7 +142,7 @@ async def update_user(
             user_role=current_user.role,
             action=AuditAction.USER_ROLE_CHANGED.value,
             resource_type="user", resource_id=user.id,
-            context={"new_role": body.role.value},
+            log_context={"new_role": body.role.value},
         ))
 
     if body.is_active is not None:
@@ -152,7 +152,7 @@ async def update_user(
                 org_id=current_user.org_id, user_id=current_user.id,
                 user_role=current_user.role,
                 action=AuditAction.USER_DEACTIVATED.value,
-                resource_type="user", resource_id=user.id, context={},
+                resource_type="user", resource_id=user.id, log_context={},
             ))
 
     return {"id": str(user.id), "role": user.role, "is_active": user.is_active}
@@ -201,7 +201,7 @@ async def assign_contracts(
                 user_role=current_user.role,
                 action=AuditAction.CONTRACT_ASSIGNED.value,
                 resource_type="contract", resource_id=contract_uuid,
-                context={"assigned_to_user_id": str(reviewer.id)},
+                log_context={"assigned_to_user_id": str(reviewer.id)},
             ))
 
     return {"assigned_count": len(assigned), "assigned_contract_ids": assigned}

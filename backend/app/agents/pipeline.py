@@ -154,38 +154,27 @@ async def safety_guard_node(state: PipelineState) -> dict[str, Any]:
 
 
 async def extractor_node(state: PipelineState) -> dict[str, Any]:
-    """
-    Clause extraction and classification.
-
-    Uses llama-3.1-8b-instant (fast) because:
-    - High volume: processes every clause in the document
-    - Task is pattern recognition, not deep reasoning
-    - Temperature 0.0: deterministic boundary detection
-
-    Output schema per clause:
-    {
-        "clause_type": ClauseType value,
-        "title": "Section 12.1 — Indemnification",
-        "raw_text": "...",
-        "summary": "Plain-English summary",
-        "page_start": 4,
-        "page_end": 6,
-        "confidence": 0.92,
-        "extracted_data": {...}  # dates, amounts, parties
-    }
-    """
     router = LLMRouter.get_instance()
-
     clause_types_list = ", ".join(ct.value for ct in ClauseType)
 
+    prompt_text = (
+        "You are a legal clause extraction specialist. "
+        "Extract ALL clauses from the contract text. "
+        "Clause types to detect: " + clause_types_list + ". "
+        "For each clause provide: clause_type, title, raw_text, summary, "
+        "page_start (int or null), page_end (int or null), confidence (float 0-1), "
+        "extracted_data (object with due_date, amount, currency, party fields). "
+        "Return ONLY valid JSON like this example: "
+        '{"clauses": [{"clause_type": "liability", "title": "Section 5", '
+        '"raw_text": "...", "summary": "...", "page_start": null, '
+        '"page_end": null, "confidence": 0.9, '
+        '"extracted_data": {"due_date": null, "amount": null, '
+        '"currency": null, "party": null}}]}'
+    )
+
     messages = [
-        SystemMessage(content=EXTRACTOR_SYSTEM_PROMPT.format(
-            clause_types=clause_types_list
-        )),
-        HumanMessage(content=(
-            f"Extract all clauses from this contract content:\n\n"
-            f"{state['content_stream']}"
-        )),
+        SystemMessage(content=prompt_text),
+        HumanMessage(content="Extract all clauses from this contract:\n\n" + state["content_stream"]),
     ]
 
     try:
@@ -197,25 +186,13 @@ async def extractor_node(state: PipelineState) -> dict[str, Any]:
         response_text = result.content if hasattr(result, "content") else str(result)
         parsed = _parse_json_response(response_text)
         clauses = parsed.get("clauses", [])
-
-        logger.info(
-            "extractor_completed",
-            contract_id=state["contract_id"],
-            clause_count=len(clauses),
-        )
+        logger.info("extractor_completed", contract_id=state["contract_id"], clause_count=len(clauses))
         return {"extracted_clauses": clauses}
-
     except Exception as exc:
-        logger.error(
-            "extractor_failed",
-            contract_id=state["contract_id"],
-            error=str(exc),
-        )
+        logger.error("extractor_failed", contract_id=state["contract_id"], error=str(exc))
         return {
             "extracted_clauses": [],
-            "pipeline_errors": state.get("pipeline_errors", []) + [
-                f"Extractor failed: {exc}"
-            ],
+            "pipeline_errors": state.get("pipeline_errors", []) + [f"Extractor failed: {exc}"],
         }
 
 

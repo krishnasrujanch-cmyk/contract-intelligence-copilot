@@ -83,7 +83,7 @@ async def chat_query(
             user_role=current_user.role,
             action=AuditAction.SAFETY_REFUSAL.value,
             resource_type="chat",
-            context={"reason": refusal_reason},
+            log_context={"reason": refusal_reason},
         ))
         logger.warning("chat_safety_refusal", role=current_user.role, reason=refusal_reason)
         return ChatResponse(
@@ -135,7 +135,7 @@ async def chat_query(
         user_role=current_user.role,
         action=AuditAction.CHATBOT_QUERY.value,
         resource_type="chat",
-        context={"result_count": len(sources)},
+        log_context={"result_count": len(sources)},
     ))
 
     return ChatResponse(answer=answer_text, sources=sources, confidence=0.85)

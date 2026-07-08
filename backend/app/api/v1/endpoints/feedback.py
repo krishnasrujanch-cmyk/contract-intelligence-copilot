@@ -57,6 +57,6 @@ async def submit_feedback(
         org_id=current_user.org_id, user_id=current_user.id,
         user_role=current_user.role,
         action=AuditAction.FEEDBACK_SUBMITTED.value,
-        resource_type="clause", resource_id=clause_uuid, context={},
+        resource_type="clause", resource_id=clause_uuid, log_context={},
     ))
     return {"status": "recorded"}
