@@ -89,6 +89,10 @@ else
 fi
 
 # ── 7. FastAPI backend ────────────────────────────────────────
+# Kill any existing instances
+pkill -f uvicorn 2>/dev/null || true
+pkill -f "vite" 2>/dev/null || true
+sleep 2
 echo "🌐 Starting FastAPI on port 8000..."
 cd /workspaces/contract-intelligence-copilot/backend
 uvicorn app.main:app \
