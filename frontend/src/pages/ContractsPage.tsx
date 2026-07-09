@@ -36,6 +36,7 @@ export default function ContractsPage() {
   const [loadingClauses, setLoadingClauses] = useState(false);
   const [expanded, setExpanded] = useState<string|null>(null);
   const [feedback, setFeedback] = useState<Record<string,"up"|"down"|null>>({});
+  const [suggestedScores, setSuggestedScores] = useState<Record<string, string>>({});
   const [feedbackLoading, setFeedbackLoading] = useState<string|null>(null);
   // Upload state
   const [showUpload, setShowUpload] = useState(false);
@@ -69,10 +70,13 @@ export default function ContractsPage() {
     if (!selectedContract) return;
     setFeedbackLoading(clauseId);
     try {
+      const suggestedScore = suggestedScores[clauseId];
       await apiClient.post("/api/v1/feedback", {
         clause_id: clauseId, contract_id: selectedContract.id,
         is_positive: isPositive, feedback_target: "risk_score",
         notes: isPositive ? "Risk score accurate" : "Risk score needs adjustment",
+        suggested_value: suggestedScore ? String(suggestedScore) : undefined,
+        original_value: undefined,
       });
       setFeedback(prev => ({ ...prev, [clauseId]: isPositive ? "up" : "down" }));
     } catch { /* silent */ }
@@ -209,17 +213,67 @@ export default function ContractsPage() {
                           </p>
                         </div>
                       )}
-                      <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", paddingTop:"0.5rem", borderTop:"1px solid #e2e8f0" }}>
-                        <span style={{ fontSize:"0.8rem", color:"#64748b", fontWeight:500 }}>Is this risk score accurate?</span>
-                        <button onClick={e=>{e.stopPropagation();submitFeedback(c.id,true);}} disabled={feedbackLoading===c.id}
-                          style={{ background:feedback[c.id]==="up"?"#16a34a":"#f1f5f9", color:feedback[c.id]==="up"?"#fff":"#374151", border:"none", borderRadius:8, padding:"6px 14px", fontSize:"0.8rem", cursor:"pointer", fontWeight:600 }}>
-                          👍 {feedback[c.id]==="up"?"Confirmed":"Accurate"}
-                        </button>
-                        <button onClick={e=>{e.stopPropagation();submitFeedback(c.id,false);}} disabled={feedbackLoading===c.id}
-                          style={{ background:feedback[c.id]==="down"?"#dc2626":"#f1f5f9", color:feedback[c.id]==="down"?"#fff":"#374151", border:"none", borderRadius:8, padding:"6px 14px", fontSize:"0.8rem", cursor:"pointer", fontWeight:600 }}>
-                          👎 {feedback[c.id]==="down"?"Flagged":"Needs Review"}
-                        </button>
-                        {feedback[c.id]&&feedbackLoading!==c.id&&<span style={{ fontSize:"0.75rem", color:"#16a34a" }}>✓ Feedback saved — helps calibrate AI scoring</span>}
+                      <div style={{ paddingTop:"0.75rem", borderTop:"1px solid #e2e8f0" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", marginBottom:"0.5rem" }}>
+                          <span style={{ fontSize:"0.8rem", color:"#64748b", fontWeight:500 }}>Is this risk score accurate?</span>
+                          <button onClick={e=>{e.stopPropagation();submitFeedback(c.id,true);}} disabled={feedbackLoading===c.id}
+                            style={{ background:feedback[c.id]==="up"?"#16a34a":"#f1f5f9", color:feedback[c.id]==="up"?"#fff":"#374151", border:"none", borderRadius:8, padding:"6px 14px", fontSize:"0.8rem", cursor:"pointer", fontWeight:600 }}>
+                            👍 {feedback[c.id]==="up"?"Confirmed":"Accurate"}
+                          </button>
+                          <button onClick={e=>{e.stopPropagation();submitFeedback(c.id,false);}} disabled={feedbackLoading===c.id}
+                            style={{ background:feedback[c.id]==="down"?"#dc2626":"#f1f5f9", color:feedback[c.id]==="down"?"#fff":"#374151", border:"none", borderRadius:8, padding:"6px 14px", fontSize:"0.8rem", cursor:"pointer", fontWeight:600 }}>
+                            👎 {feedback[c.id]==="down"?"Incorrect":"Needs Review"}
+                          </button>
+                          {feedback[c.id]&&feedbackLoading!==c.id&&(
+                            <span style={{ fontSize:"0.75rem", color:"#16a34a" }}>✓ Feedback saved</span>
+                          )}
+                        </div>
+                        {/* Suggested score input — shown when reviewer disagrees */}
+                        {feedback[c.id]==="down"&&(
+                          <div style={{ display:"flex", alignItems:"center", gap:"0.5rem",
+                                        background:"#fef9c3", padding:"0.5rem 0.75rem",
+                                        borderRadius:8, marginTop:4 }}>
+                            <span style={{ fontSize:"0.8rem", color:"#92400e", fontWeight:500 }}>
+                              What should the risk score be?
+                            </span>
+                            <input
+                              type="number" min="0" max="100"
+                              value={suggestedScores[c.id] || ""}
+                              onChange={e => setSuggestedScores(prev => ({...prev, [c.id]: e.target.value}))}
+                              placeholder="0–100"
+                              style={{ width:70, padding:"4px 8px", border:"1px solid #d97706",
+                                       borderRadius:6, fontSize:"0.8rem", textAlign:"center" }}
+                            />
+                            <button
+                              onClick={async e => {
+                                e.stopPropagation();
+                                if (suggestedScores[c.id]) {
+                                  setFeedbackLoading(c.id);
+                                  try {
+                                    await apiClient.post("/api/v1/feedback", {
+                                      clause_id: c.id,
+                                      contract_id: selectedContract?.id,
+                                      is_positive: false,
+                                      feedback_target: "risk_score",
+                                      suggested_value: suggestedScores[c.id],
+                                      notes: "Reviewer suggested score: " + suggestedScores[c.id],
+                                    });
+                                    setSuggestedScores(prev => ({...prev, [c.id]: ""}));
+                                  } catch {}
+                                  finally { setFeedbackLoading(null); }
+                                }
+                              }}
+                              disabled={!suggestedScores[c.id]}
+                              style={{ background:"#d97706", color:"#fff", border:"none",
+                                       borderRadius:6, padding:"5px 12px", fontSize:"0.8rem",
+                                       fontWeight:600, cursor:suggestedScores[c.id]?"pointer":"not-allowed" }}>
+                              Submit Score
+                            </button>
+                            <span style={{ fontSize:"0.75rem", color:"#92400e" }}>
+                              This helps calibrate AI scoring for future contracts
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
