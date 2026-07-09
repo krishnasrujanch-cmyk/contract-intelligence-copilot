@@ -1,0 +1,41 @@
+EMPLOYMENT AGREEMENT
+Effective Date: March 15, 2026
+
+PARTIES
+InnovateTech Solutions Pvt. Ltd., 14 Cyber Park, Hyderabad, Telangana 500081 (Employer)
+Priya Sharma, Hyderabad, Telangana (Employee)
+
+ARTICLE 1. EMPLOYMENT TERMS
+1.1 Position: Senior Software Engineer, reporting to Engineering Manager.
+1.2 Commencement: April 1, 2026.
+1.3 Probation: Six (6) months. Either party may terminate with two (2) weeks notice.
+
+ARTICLE 2. COMPENSATION
+2.1 Base Salary: INR 20,00,000 per annum, paid monthly on last working day.
+2.2 Performance Bonus: Up to twenty percent (20%) of base salary. Discretionary, not guaranteed.
+2.3 Stock Options: 5,000 ESOPs vesting over four (4) years with one (1) year cliff.
+2.4 Benefits: PF per statute, health insurance INR 5,00,000, 24 days paid leave, 10 sick days.
+
+ARTICLE 3. INTELLECTUAL PROPERTY
+3.1 Work Product: All inventions, code, and works created during employment belong exclusively to Employer.
+3.2 Non-Compete: One (1) year post-termination restriction on joining competing businesses within India.
+3.3 Non-Solicitation: Two (2) years post-termination restriction on soliciting Employer customers or employees.
+
+ARTICLE 4. CONFIDENTIALITY
+4.1 Employee shall not disclose trade secrets, customer lists, or business strategies during or after employment.
+4.2 Confidentiality obligations survive termination indefinitely for trade secrets.
+
+ARTICLE 5. TERMINATION
+5.1 By Employer for cause: Immediate, no notice required.
+5.2 By Employer without cause: Three (3) months written notice or payment in lieu.
+5.3 Resignation: Employee must provide three (3) months written notice.
+5.4 Final Settlement: Due within 45 days of last working day.
+
+ARTICLE 6. GOVERNING LAW
+Governed by Indian law, Telangana jurisdiction. Disputes via arbitration in Hyderabad under
+the Arbitration and Conciliation Act 1996.
+
+SIGNATURES
+INNOVATETECH SOLUTIONS PVT. LTD.     EMPLOYEE
+Rakesh Gupta, Chief People Officer   Priya Sharma
+March 15, 2026                        March 15, 2026
