@@ -79,6 +79,30 @@ export default function ContractsPage() {
     finally { setFeedbackLoading(null); }
   };
 
+  const reprocess = async (contractId: string) => {
+    try {
+      await apiClient.post("/api/v1/contracts/" + contractId + "/reprocess");
+      // Poll until analyzed
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const res = await apiClient.get("/api/v1/contracts/" + contractId);
+        if (res.data.status === "analyzed") {
+          const listRes = await apiClient.get("/api/v1/contracts");
+          setContracts(listRes.data);
+          const updated = listRes.data.find((c: Contract) => c.id === contractId);
+          if (updated) openContract(updated);
+          return;
+        }
+        if (res.data.status === "failed") break;
+      }
+      // Refresh list anyway
+      const listRes = await apiClient.get("/api/v1/contracts");
+      setContracts(listRes.data);
+    } catch (err) {
+      console.error("Reprocess failed:", err);
+    }
+  };
+
   const upload = async (file: File) => {
     setUploading(true); setError(""); setUploadResult(null);
     const form = new FormData(); form.append("file", file);
@@ -266,10 +290,18 @@ export default function ContractsPage() {
                 <td style={{ padding:"1rem 1.25rem" }}>{c.overall_risk?<span style={{ background:(RISK_COLOR[c.overall_risk]||"#94a3b8")+"20", color:RISK_COLOR[c.overall_risk]||"#94a3b8", padding:"2px 10px", borderRadius:20, fontSize:"0.75rem", fontWeight:600 }}>{c.overall_risk}</span>:<span style={{ color:"#94a3b8" }}>—</span>}</td>
                 <td style={{ padding:"1rem 1.25rem", fontSize:"0.875rem", color:"#64748b" }}>{new Date(c.created_at).toLocaleDateString()}</td>
                 <td style={{ padding:"1rem 1.25rem" }}>
-                  <button onClick={()=>openContract(c)}
-                    style={{ background:"#4f46e5", color:"#fff", border:"none", borderRadius:6, padding:"5px 14px", fontSize:"0.75rem", fontWeight:600, cursor:"pointer" }}>
-                    View Clauses
-                  </button>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <button onClick={()=>openContract(c)}
+                      style={{ background:"#4f46e5", color:"#fff", border:"none", borderRadius:6, padding:"5px 14px", fontSize:"0.75rem", fontWeight:600, cursor:"pointer" }}>
+                      View Clauses
+                    </button>
+                    {(c.status==="processing"||c.status==="failed"||c.status==="uploaded")&&(
+                      <button onClick={()=>reprocess(c.id)}
+                        style={{ background:"#f59e0b", color:"#fff", border:"none", borderRadius:6, padding:"5px 10px", fontSize:"0.75rem", fontWeight:600, cursor:"pointer" }}>
+                        ↻ Reprocess
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}</tbody>

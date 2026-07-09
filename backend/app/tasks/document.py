@@ -5,12 +5,12 @@ Runs the full parser → PII mask → chunk → embed → pipeline flow.
 """
 from __future__ import annotations
 import asyncio
-from app.tasks import worker
+from app.tasks import celery_app
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-@worker.task(
+@celery_app.task(
     name="app.tasks.document.process_contract_task",
     bind=True,
     max_retries=3,

@@ -309,3 +309,50 @@ async def _get_contract_with_access_check(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found.")
 
     return contract
+
+
+@router.post("/{contract_id}/reprocess", status_code=200)
+async def reprocess_contract(
+    contract_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Reprocess a stuck or failed contract — admin/reviewer only."""
+    if current_user.role not in ("admin", "reviewer"):
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    try:
+        cid = uuid.UUID(contract_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid contract_id.")
+
+    from sqlalchemy import select, update
+    from app.domain.models import Contract
+    from app.domain.enums import ContractStatus
+
+    r = await db.execute(select(Contract).where(
+        Contract.id == cid,
+        Contract.org_id == current_user.org_id,
+    ))
+    contract = r.scalar_one_or_none()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found.")
+
+    # Reset status
+    await db.execute(update(Contract).where(Contract.id == cid)
+                     .values(status=ContractStatus.UPLOADED.value,
+                             risk_score=None, overall_risk=None))
+    await db.commit()
+
+    # Run pipeline in background thread to avoid blocking the response
+    import asyncio
+    from app.tasks.document import _run_pipeline
+
+    async def _bg():
+        try:
+            await _run_pipeline(str(cid), str(current_user.org_id))
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error(f"Reprocess failed: {exc}")
+
+    asyncio.create_task(_bg())
+    return {"status": "reprocessing", "contract_id": contract_id}
