@@ -6,7 +6,7 @@
       "llm_avg_score": 50.0,
       "expert_avg_score": 22.5,
       "bias": 27.5,
-      "feedback_count": 0,
+      "feedback_count": 2,
       "positive_rate": 0.0
     },
     {
@@ -54,16 +54,16 @@
       "llm_avg_score": 30.0,
       "expert_avg_score": 20.0,
       "bias": 10.0,
-      "feedback_count": 0,
-      "positive_rate": 0.0
+      "feedback_count": 1,
+      "positive_rate": 1.0
     },
     {
       "clause_type": "auto_renewal",
       "llm_avg_score": 47.5,
       "expert_avg_score": 55.0,
       "bias": -7.5,
-      "feedback_count": 0,
-      "positive_rate": 0.0
+      "feedback_count": 2,
+      "positive_rate": 0.5
     },
     {
       "clause_type": "force_majeure",
@@ -78,7 +78,7 @@
     {
       "clause_type": "confidentiality",
       "correction": -27.5,
-      "confidence": 0.6,
+      "confidence": 0.62,
       "reason": "LLM scores 27.5 points above expert baseline for 'confidentiality' clauses. Adjust scores lower by ~28 points."
     },
     {
@@ -114,13 +114,13 @@
     {
       "clause_type": "ip_ownership",
       "correction": 0.0,
-      "confidence": 0.6,
+      "confidence": 0.61,
       "reason": "Bias of +10.0 is within natural variance (±15). No adjustment."
     },
     {
       "clause_type": "auto_renewal",
       "correction": 0.0,
-      "confidence": 0.6,
+      "confidence": 0.62,
       "reason": "Bias of -7.5 is within natural variance (±15). No adjustment."
     },
     {

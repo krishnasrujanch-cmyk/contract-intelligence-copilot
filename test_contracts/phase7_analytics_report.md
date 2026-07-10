@@ -10,14 +10,14 @@
 
 | Clause Type | Expert Score | LLM Score (CoT) | Bias | Feedback | Positive Rate |
 |---|---|---|---|---|---|
-| confidentiality | 22 | 50 | 🔴 +27.5 | 0 | 0% |
+| confidentiality | 22 | 50 | 🔴 +27.5 | 2 | 0% |
 | indemnification | 45 | 70 | 🔴 +25.0 | 0 | 0% |
 | governing_law | 0 | 20 | 🔴 +20.0 | 0 | 0% |
 | liability | 52 | 70 | 🔴 +17.5 | 0 | 0% |
 | payment | 35 | 20 | 🟡 -15.0 | 0 | 0% |
 | termination | 25 | 40 | 🟡 +15.0 | 0 | 0% |
-| ip_ownership | 20 | 30 | 🟡 +10.0 | 0 | 0% |
-| auto_renewal | 55 | 48 | 🟡 -7.5 | 0 | 0% |
+| ip_ownership | 20 | 30 | 🟡 +10.0 | 1 | 100% |
+| auto_renewal | 55 | 48 | 🟡 -7.5 | 2 | 50% |
 | force_majeure | 20 | 25 | 🟢 +5.0 | 0 | 0% |
 
 **Legend:** 🟢 ≤±5 (excellent) | 🟡 ±5-15 (acceptable) | 🔴 >±15 (correction applied)
@@ -30,14 +30,14 @@
 
 | Clause Type | Correction | Confidence | Status |
 |---|---|---|---|
-| confidentiality | -27.5 | 60% | Lower by 27.5 |
+| confidentiality | -27.5 | 62% | Lower by 27.5 |
 | indemnification | -25.0 | 60% | Lower by 25.0 |
 | governing_law | -20.0 | 60% | Lower by 20.0 |
 | liability | -17.5 | 60% | Lower by 17.5 |
 | payment | No adjustment | 60% | Calibrated |
 | termination | No adjustment | 60% | Calibrated |
-| ip_ownership | No adjustment | 60% | Calibrated |
-| auto_renewal | No adjustment | 60% | Calibrated |
+| ip_ownership | No adjustment | 61% | Calibrated |
+| auto_renewal | No adjustment | 62% | Calibrated |
 | force_majeure | No adjustment | 60% | Calibrated |
 
 ---
