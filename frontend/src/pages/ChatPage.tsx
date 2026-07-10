@@ -35,8 +35,12 @@ export default function ChatPage() {
     setMsgs(p=>[...p,{id:Date.now().toString(),role:"user",content:text}]);
     setInput(""); setLoading(true);
     try {
+      const { userEmail } = useAuthStore.getState();
       let res;
-      try { res = await apiClient.post("/api/v1/chat/multi-turn",{query:text,session_id:sessionId,contract_ids:[]}); }
+      try { res = await apiClient.post("/api/v1/chat/multi-turn",{
+        query:text, session_id:sessionId, contract_ids:[],
+        user_context: userEmail || undefined
+      }); }
       catch { res = await apiClient.post("/api/v1/chat",{query:text}); }
       const d = res.data;
       setMsgs(p=>[...p,{id:Date.now()+"a",role:"assistant",content:d.answer||d.message||"No answer found.",citations:d.citations||d.sources}]);

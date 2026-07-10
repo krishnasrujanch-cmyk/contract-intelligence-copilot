@@ -272,7 +272,8 @@ Rules you must ALWAYS follow:
    "This information is not found in the provided contract clauses."
 3. Never suggest modifying any contract term.
 4. Never provide legal advice — factual clause summaries only.
-5. Keep answers concise, professional, and accurate."""
+5. Keep answers concise, professional, and accurate.
+6. Address the user by their role context when relevant."""
 
     _VIEWER_ADDENDUM = """
 6. VIEWER ACCESS RESTRICTION: Paraphrase all content — do not quote
@@ -283,6 +284,7 @@ Rules you must ALWAYS follow:
         query:  str,
         chunks: list[dict[str, Any]],
         role:   str,
+        user_name: str | None = None,
     ) -> dict[str, Any]:
         if not chunks:
             return {
@@ -306,7 +308,15 @@ Rules you must ALWAYS follow:
             )
         context = "\n\n".join(context_lines)
 
-        system_prompt = self._SYSTEM_BASE
+        role_context = {
+            "admin":    "You are assisting an administrator with full contract access.",
+            "reviewer": "You are assisting a legal reviewer validating contract risk scores.",
+            "viewer":   "You are assisting a stakeholder with summary-level contract access.",
+        }.get(role, "")
+
+        system_prompt = self._SYSTEM_BASE + f"\n\nUser context: {role_context}"
+        if user_name:
+            system_prompt += f" User: {user_name}."
         if role == "viewer":
             system_prompt += self._VIEWER_ADDENDUM
 
@@ -348,6 +358,13 @@ Rules you must ALWAYS follow:
             for i, c in enumerate(chunks)
         ]
         avg_relevance = sum(c["relevance"] for c in chunks) / len(chunks)
+
+        # Deanonymize PII tokens in the answer before returning
+        try:
+            from app.infrastructure.pii.presidio_engine import deanonymize_text
+            answer = deanonymize_text(answer)
+        except Exception:
+            pass  # If deanonymization fails, return masked answer
 
         return {
             "answer":     answer,
