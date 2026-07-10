@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.middleware.auth import AdminUser, AnyAuthenticatedUser, CurrentUser
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.domain.enums import AuditAction, ContractStatus, UserRole
+from app.domain.enums import ContractStatus, AuditAction, ContractStatus, UserRole
 from app.domain.models import AuditLog, Contract, User, UserContractAssignment
 from app.infrastructure.database.session import get_db
 from app.infrastructure.parsers import ParserFactory
@@ -327,7 +327,7 @@ async def reprocess_contract(
 
     from sqlalchemy import select, update
     from app.domain.models import Contract
-    from app.domain.enums import ContractStatus
+    from app.domain.enums import ContractStatus, ContractStatus
 
     r = await db.execute(select(Contract).where(
         Contract.id == cid,
