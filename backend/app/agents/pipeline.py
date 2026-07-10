@@ -47,6 +47,7 @@ Pipeline flow:
 from __future__ import annotations
 
 import json
+from app.infrastructure.llm.json_parser import parse_llm_json, parse_clauses
 from enum import Enum
 from typing import Annotated, Any, TypedDict
 
@@ -462,6 +463,18 @@ def build_document_pipeline() -> Any:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _parse_json_response(text: str) -> dict[str, Any]:
+    import re as _re, json as _json
+    # Method 0: extract json block with regex (handles markdown fences)
+    _m = _re.search(r"```(?:json)?\s*(.*?)\s*```", response_text, _re.DOTALL)
+    if _m:
+        try: return _json.loads(_m.group(1))
+        except Exception: pass
+    # Method 1: find outermost { } block
+    _m = _re.search(r"\{.*\}", response_text, _re.DOTALL)
+    if _m:
+        try: return _json.loads(_m.group(0))
+        except Exception: pass
+
     """
     Extract JSON from LLM response, tolerating markdown code fences.
     Returns empty dict on parse failure — callers handle missing fields.
