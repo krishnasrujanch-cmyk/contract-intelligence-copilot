@@ -4,6 +4,17 @@ import { useAuthStore } from "@/store/authStore";
 import { apiClient, getErrorMessage } from "@/services/api";
 
 interface Msg { id:string; role:"user"|"assistant"; content:string; citations?:Array<{index:number;section_path:string;clause_type:string}>; isError?:boolean; }
+// Contract selector state
+function useContracts() {
+  const [contracts, setContracts] = useState<Array<{id:string;title:string}>>([]);
+  useEffect(() => {
+    apiClient.get("/api/v1/contracts")
+      .then(r => setContracts(r.data.filter((c:any) => c.status === "analyzed")))
+      .catch(() => {});
+  }, []);
+  return contracts;
+}
+
 const SUGGESTED = ["What is the liability cap?","When does the contract auto-renew?","What are the confidentiality obligations?","What payment amounts are due?","Are there any critical risk clauses?"];
 
 function Nav() {
@@ -27,6 +38,8 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(()=>crypto.randomUUID());
+  const [selectedContractId, setSelectedContractId] = useState<string>("");
+  const contracts = useContracts();
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
 
@@ -77,6 +90,30 @@ export default function ChatPage() {
           <div style={{ background:"#fff", padding:"0.875rem 1.125rem", borderRadius:"16px 16px 16px 4px", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}><span style={{ color:"#94a3b8", fontSize:"0.875rem" }}>Analysing…</span></div>
         </div>}
         <div ref={bottomRef}/>
+      </div>
+      {/* Contract selector */}
+      <div style={{ maxWidth:860, width:"100%", margin:"0 auto", padding:"0.5rem 1.5rem" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:"0.8rem", color:"#64748b", fontWeight:500, whiteSpace:"nowrap" }}>
+            Searching:
+          </span>
+          <select
+            value={selectedContractId}
+            onChange={e => setSelectedContractId(e.target.value)}
+            style={{ flex:1, padding:"6px 10px", border:"1px solid #e2e8f0", borderRadius:8,
+                     fontSize:"0.8rem", color:"#374151", background:"#fff", cursor:"pointer" }}>
+            <option value="">All contracts</option>
+            {contracts.map(c => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+          {selectedContractId && (
+            <button onClick={() => setSelectedContractId("")}
+              style={{ background:"none", border:"none", color:"#94a3b8", cursor:"pointer", fontSize:"0.8rem" }}>
+              ✕ Clear
+            </button>
+          )}
+        </div>
       </div>
       {msgs.length<=1&&(
         <div style={{ maxWidth:860, width:"100%", margin:"0 auto", padding:"0 1.5rem", display:"flex", gap:8, flexWrap:"wrap" }}>

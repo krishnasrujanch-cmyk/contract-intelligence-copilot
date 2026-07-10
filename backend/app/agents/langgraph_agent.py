@@ -197,12 +197,15 @@ async def agent_node(state: AgentState) -> dict[str, Any]:
     # On subsequent iterations: messages already contain tool results — just continue
     existing = state.get("messages", [])
     if not existing:
+        contract_scope = state.get("contract_id", "")
+        scope_hint = f" Scope to contract_id='{contract_scope}'." if contract_scope else " Search all contracts."
         messages = [
             SystemMessage(content=_build_agent_system(state["role"], state["org_id"])),
             HumanMessage(content=(
                 f"{state['query']}\n\n"
-                f"[Context: role={state['role']}, org_id={state['org_id']}. "
-                f"Use search_contracts with org_id='{state['org_id']}' and role='{state['role']}']"
+                f"[Context: role={state['role']}, org_id={state['org_id']}.{scope_hint} "
+                f"Use search_contracts with org_id='{state['org_id']}' and role='{state['role']}'"
+                + (f" and contract_id='{contract_scope}'" if contract_scope else "") + "]"
             )),
         ]
     else:

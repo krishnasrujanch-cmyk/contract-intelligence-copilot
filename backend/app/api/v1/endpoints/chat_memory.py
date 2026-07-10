@@ -129,8 +129,13 @@ async def multi_turn_chat(
 
     # 2 — Build initial agent state with memory injected
     graph = get_agent_graph()
+    # Build assigned contract list for RBAC
+    assigned_ids = body.contract_ids or []
+    if body.contract_id and body.contract_id not in assigned_ids:
+        assigned_ids = [body.contract_id]
+
     initial_state = {
-        "messages":        history,     # ← prior conversation injected here
+        "messages":        history,
         "role":            role,
         "org_id":          org_id,
         "query":           body.query,
@@ -140,6 +145,8 @@ async def multi_turn_chat(
         "iteration":       0,
         "flagged":         False,
         "error":           "",
+        "contract_id":     body.contract_id,
+        "assigned_contract_ids": assigned_ids if assigned_ids else None,
     }
 
     # 3 — Run agent pipeline (safety guard → tools → judge)
