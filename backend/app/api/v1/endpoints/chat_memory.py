@@ -149,21 +149,38 @@ async def multi_turn_chat(
         "assigned_contract_ids": assigned_ids if assigned_ids else None,
     }
 
-    # 3 — Run agent pipeline (safety guard → tools → judge)
+    # 3 — Run RAG pipeline directly (faster, contract_id scoped)
     try:
-        final_state = await graph.ainvoke(initial_state)
-        answer      = final_state.get("answer", "")
-        citations   = final_state.get("citations", [])
+        from app.agents.rag.pipeline import RAGPipeline
+        from app.infrastructure.pii.presidio_engine import deanonymize_text
 
-        # Extract answer from last message if not set directly
-        if not answer:
-            messages = final_state.get("messages", [])
-            if messages:
-                last = messages[-1]
-                answer = last.content if hasattr(last, "content") else str(last)
+        pipeline = RAGPipeline()
+
+        # Get assigned contract IDs for reviewer RBAC
+        assigned_ids = None
+        if role == "reviewer" and assigned_ids is None:
+            assigned_ids = body.contract_ids or None
+
+        result = pipeline.answer(
+            query=body.query,
+            role=role,
+            org_id=org_id,
+            assigned_contract_ids=assigned_ids,
+            n_results=6,
+            contract_id=body.contract_id or None,
+        )
+
+        answer    = result.get("answer", "")
+        citations = result.get("citations", [])
+
+        # Deanonymize PII tokens in answer
+        try:
+            answer = deanonymize_text(answer)
+        except Exception:
+            pass
 
     except Exception as exc:
-        logger.error("agent_invocation_failed", error=str(exc))
+        logger.error("rag_invocation_failed", error=str(exc))
         answer    = "An error occurred processing your query. Please try again."
         citations = []
 

@@ -419,10 +419,18 @@ class RAGPipeline:
         org_id:                str,
         assigned_contract_ids: list[str] | None = None,
         n_results:             int = 6,
+        contract_id:           str | None = None,
     ) -> dict[str, Any]:
-        """Retrieve role-scoped chunks and synthesise a cited answer."""
+        """Retrieve role-scoped chunks and synthesise a cited answer.
+        If contract_id is set, scopes retrieval to that contract only.
+        """
         chunks = self._retriever.retrieve(
-            query, role, org_id, assigned_contract_ids, n_results
+            query=query,
+            role=role,
+            org_id=org_id,
+            assigned_contract_ids=assigned_contract_ids,
+            n_results=n_results,
+            contract_id=contract_id,
         )
         return self._synthesiser.synthesise(query, chunks, role)
 
