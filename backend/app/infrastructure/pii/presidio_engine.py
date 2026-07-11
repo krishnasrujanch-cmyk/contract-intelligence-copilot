@@ -140,18 +140,34 @@ def anonymize_text(text: str, session_id: str) -> tuple[str, dict[str, str]]:
         return text, {}
 
 
-def deanonymize_text(text: str, mask_map: dict[str, str]) -> str:
+def deanonymize_text(text: str) -> str:
     """
-    Restore original PII values in text using the mask map.
-    Only called for authorised roles (admin, reviewer) after LLM processing.
+    Replace Presidio PII tokens with human-readable placeholders.
+    
+    In production, use the session operator_map to restore original values.
+    For chat display: replace tokens with readable text so answers make sense.
     """
-    if not mask_map:
+    import re as _re
+    if not text or "[" not in text:
         return text
-
-    result = text
-    for token, original in mask_map.items():
-        result = result.replace(token, original)
-    return result
+    
+    # Replace all Presidio tokens [ENTITY_TYPE_HEXCODE] with readable text
+    replacements = {
+        r"\[PERSON_[A-F0-9]+\]":        "[person]",
+        r"\[LOCATION_[A-F0-9]+\]":      "[location]", 
+        r"\[DATE_TIME_[A-F0-9]+\]":     "[date]",
+        r"\[EMAIL_ADDRESS_[A-F0-9]+\]": "[email]",
+        r"\[PHONE_NUMBER_[A-F0-9]+\]":  "[phone]",
+        r"\[ORGANIZATION_[A-F0-9]+\]":  "[organization]",
+        r"\[ORG_[A-F0-9]+\]":           "[organization]",
+        r"\[NRP_[A-F0-9]+\]":           "[entity]",
+        r"\[IP_ADDRESS_[A-F0-9]+\]":    "[IP address]",
+        r"\[URL_[A-F0-9]+\]":           "[URL]",
+        r"\[[A-Z_]+_[A-F0-9]{8}\]":     "[redacted]",
+    }
+    for pattern, replacement in replacements.items():
+        text = _re.sub(pattern, replacement, text)
+    return text
 
 
 def scan_output_for_pii(text: str) -> list[str]:
