@@ -166,6 +166,13 @@ class ChunkEmbedder:
             texts, batch_size=32, show_progress_bar=False
         ).tolist()
 
+        # Deanonymize text for storage so LLM reads original values
+        try:
+            from app.infrastructure.pii.presidio_engine import deanonymize_text
+            display_texts = [deanonymize_text(t) for t in texts]
+        except Exception:
+            display_texts = texts
+
         metadatas = []
         for c in chunks:
             metadatas.append({
@@ -180,7 +187,7 @@ class ChunkEmbedder:
         collection.upsert(
             ids=       [c.id for c in chunks],
             embeddings=embeddings,
-            documents= texts,
+            documents= display_texts,  # Store deanonymized text for LLM context
             metadatas= metadatas,
         )
 
