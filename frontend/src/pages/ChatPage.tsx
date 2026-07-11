@@ -54,7 +54,12 @@ export default function ChatPage() {
         query:text, session_id:sessionId, contract_ids:[],
         user_context: userEmail || undefined
       }); }
-      catch { res = await apiClient.post("/api/v1/chat",{query:text}); }
+      catch { res = await apiClient.post("/api/v1/chat/multi-turn",{
+        query:        text,
+        session_id:   sessionId,
+        contract_ids: selectedContractId ? [selectedContractId] : [],
+        contract_id:  selectedContractId || null,
+      }); }
       const d = res.data;
       setMsgs(p=>[...p,{id:Date.now()+"a",role:"assistant",content:d.answer||d.message||"No answer found.",citations:d.citations||d.sources}]);
     } catch(err) {
