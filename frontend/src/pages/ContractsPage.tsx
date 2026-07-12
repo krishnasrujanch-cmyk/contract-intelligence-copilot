@@ -107,6 +107,22 @@ export default function ContractsPage() {
     }
   };
 
+  const [deleting, setDeleting] = useState<string|null>(null);
+
+  const deleteContract = async (c: Contract) => {
+    if (!window.confirm(`Delete "${c.title}"? This cannot be undone.`)) return;
+    setDeleting(c.id);
+    try {
+      await apiClient.delete("/api/v1/contracts/" + c.id);
+      setContracts(prev => prev.filter(x => x.id !== c.id));
+      if (selectedContract?.id === c.id) setSelectedContract(null);
+    } catch (err) {
+      alert("Delete failed: " + getErrorMessage(err));
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const upload = async (file: File) => {
     setUploading(true); setError(""); setUploadResult(null);
     const form = new FormData(); form.append("file", file);
@@ -156,6 +172,13 @@ export default function ContractsPage() {
               style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:8, padding:"6px 14px", fontSize:"0.875rem", cursor:"pointer", color:"#374151" }}>
               ← Back to Contracts
             </button>
+            {role==="admin"&&(
+              <button onClick={()=>deleteContract(selectedContract)}
+                disabled={deleting===selectedContract.id}
+                style={{ background:"#fee2e2", color:"#dc2626", border:"1px solid #fecaca", borderRadius:8, padding:"6px 14px", fontSize:"0.875rem", fontWeight:600, cursor:"pointer", marginLeft:"auto" }}>
+                {deleting===selectedContract.id?"Deleting…":"🗑 Delete Contract"}
+              </button>
+            )}
             <div>
               <h1 style={{ fontSize:"1.25rem", fontWeight:700, color:"#0f172a", margin:0 }}>{selectedContract.title}</h1>
               <div style={{ display:"flex", gap:8, marginTop:4 }}>
@@ -353,6 +376,13 @@ export default function ContractsPage() {
                       <button onClick={()=>reprocess(c.id)}
                         style={{ background:"#f59e0b", color:"#fff", border:"none", borderRadius:6, padding:"5px 10px", fontSize:"0.75rem", fontWeight:600, cursor:"pointer" }}>
                         ↻ Reprocess
+                      </button>
+                    )}
+                    {role==="admin"&&(
+                      <button onClick={()=>deleteContract(c)}
+                        disabled={deleting===c.id}
+                        style={{ background:deleting===c.id?"#fca5a5":"#fee2e2", color:"#dc2626", border:"1px solid #fecaca", borderRadius:6, padding:"5px 10px", fontSize:"0.75rem", fontWeight:600, cursor:deleting===c.id?"not-allowed":"pointer" }}>
+                        {deleting===c.id?"Deleting…":"🗑 Delete"}
                       </button>
                     )}
                   </div>

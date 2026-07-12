@@ -328,3 +328,53 @@ async def _process_contract(contract_id: str, org_id: str):
             )
     except Exception as exc:
         logger.error("background_process_failed", contract_id=contract_id, error=str(exc))
+
+
+@router.delete("/{contract_id}", status_code=200)
+async def delete_contract(
+    contract_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a contract and all associated data. Admin only."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    try:
+        cid = uuid.UUID(contract_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid contract_id.")
+
+    result = await db.execute(
+        select(Contract).where(Contract.id == cid, Contract.org_id == current_user.org_id)
+    )
+    contract = result.scalar_one_or_none()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found.")
+
+    # Delete file from disk
+    try:
+        file_path = Path(contract.file_path)
+        if file_path.exists():
+            file_path.unlink()
+    except Exception as e:
+        logger.warning("file_delete_failed", error=str(e))
+
+    # Delete from ChromaDB
+    try:
+        from app.agents.rag.pipeline import RAGPipeline
+        RAGPipeline().delete_contract(str(cid), str(current_user.org_id))
+    except Exception as e:
+        logger.warning("chroma_delete_failed", error=str(e))
+
+    # Delete clauses, assignments, audit logs, then contract from DB
+    await db.execute(delete(Clause).where(Clause.contract_id == cid))
+    await db.execute(delete(UserContractAssignment).where(
+        UserContractAssignment.contract_id == cid
+    ))
+    await db.execute(
+        delete(Contract).where(Contract.id == cid, Contract.org_id == current_user.org_id)
+    )
+    await db.commit()
+
+    logger.info("contract_deleted", contract_id=contract_id, admin=str(current_user.id))
+    return {"status": "deleted", "contract_id": contract_id}
