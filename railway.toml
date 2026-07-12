@@ -1,9 +1,8 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pip install -r backend/requirements.txt && cd frontend && npm install && VITE_API_URL=$RAILWAY_PUBLIC_DOMAIN npm run build"
+buildCommand = "pip install -r backend/requirements.txt"
 
 [deploy]
-startCommand = "cd backend && bash railway_start.sh"
+startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 restartPolicyType = "on_failure"
 healthcheckPath = "/health"
-healthcheckTimeout = 300
