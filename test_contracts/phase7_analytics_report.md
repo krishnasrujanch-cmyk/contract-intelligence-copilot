@@ -17,7 +17,7 @@
 | payment | 35 | 20 | 🟡 -15.0 | 0 | 0% |
 | termination | 25 | 40 | 🟡 +15.0 | 0 | 0% |
 | ip_ownership | 20 | 30 | 🟡 +10.0 | 1 | 100% |
-| auto_renewal | 55 | 48 | 🟡 -7.5 | 2 | 50% |
+| auto_renewal | 55 | 48 | 🟡 -7.5 | 4 | 25% |
 | force_majeure | 20 | 25 | 🟢 +5.0 | 0 | 0% |
 
 **Legend:** 🟢 ≤±5 (excellent) | 🟡 ±5-15 (acceptable) | 🔴 >±15 (correction applied)
@@ -37,7 +37,7 @@
 | payment | No adjustment | 60% | Calibrated |
 | termination | No adjustment | 60% | Calibrated |
 | ip_ownership | No adjustment | 61% | Calibrated |
-| auto_renewal | No adjustment | 62% | Calibrated |
+| auto_renewal | No adjustment | 64% | Calibrated |
 | force_majeure | No adjustment | 60% | Calibrated |
 
 ---
