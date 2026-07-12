@@ -95,8 +95,19 @@ async def chat_query(
 
     effective_assigned = db_assigned_ids if current_user.role in ("viewer", "reviewer") else None
 
+    # Build contextual query using recent history
+    contextual_query = body.query
+    if body.history:
+        # Prepend last 2 exchanges for context
+        recent = body.history[-4:]  # last 2 Q&A pairs
+        history_text = " | ".join(
+            f"{m['role']}: {m['content'][:100]}"
+            for m in recent
+        )
+        contextual_query = f"[Context: {history_text}] Current question: {body.query}"
+
     rag_result = RAGPipeline().answer(
-        query=body.query,
+        query=contextual_query,
         role=current_user.role,
         org_id=str(current_user.org_id),
         assigned_contract_ids=effective_assigned,
