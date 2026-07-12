@@ -50,11 +50,13 @@ export default function ChatPage() {
     try {
       const { userEmail } = useAuthStore.getState();
       let res;
-      try { res = await apiClient.post("/api/v1/chat/multi-turn",{
-        query:text, session_id:sessionId, contract_ids:[],
+      try { res = await apiClient.post("/api/v1/chat",{
+        query:text, session_id:sessionId,
+        contract_ids: selectedContractId ? [selectedContractId] : [],
+        contract_id: selectedContractId || null,
         user_context: userEmail || undefined
       }); }
-      catch { res = await apiClient.post("/api/v1/chat/multi-turn",{
+      catch { res = await apiClient.post("/api/v1/chat",{
         query:        text,
         session_id:   sessionId,
         contract_ids: selectedContractId ? [selectedContractId] : [],
