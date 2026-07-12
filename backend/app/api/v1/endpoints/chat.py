@@ -78,9 +78,21 @@ async def chat_query(
     from app.agents.rag.pipeline import RAGPipeline
     from app.infrastructure.pii.presidio_engine import deanonymize_text
 
-    # For viewer: always use DB assignments, ignore frontend contract_id
-    # For admin/reviewer: use frontend contract_id if provided
-    effective_contract_id = None if current_user.role == "viewer" else contract_id
+    # Scope logic:
+    # - admin: use frontend contract_id if provided, else all contracts
+    # - reviewer: use frontend contract_id if provided (must be in assignments), else all assigned
+    # - viewer: use frontend contract_id if provided (must be in assignments), else all assigned
+    if current_user.role in ("viewer", "reviewer") and contract_id:
+        # Only allow scoping to assigned contracts
+        if contract_id in db_assigned_ids:
+            effective_contract_id = contract_id
+        else:
+            effective_contract_id = None  # Ignore unassigned contract_id
+    elif current_user.role == "admin":
+        effective_contract_id = contract_id
+    else:
+        effective_contract_id = None
+
     effective_assigned = db_assigned_ids if current_user.role in ("viewer", "reviewer") else None
 
     rag_result = RAGPipeline().answer(
