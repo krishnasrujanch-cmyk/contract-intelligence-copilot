@@ -330,22 +330,36 @@ Rules you must ALWAYS follow:
 User context: {role_context}
 
 RESPONSE FORMATTING RULES (mandatory):
-1. Start with a direct one-sentence answer to the question.
-2. Use bullet points (•) for lists of 3 or more items.
-3. For tables or schedules, use a clean format:
-   • Item name: value/date/amount
-4. Put citations [N] at the END of the sentence, not in the middle.
-5. Keep sentences short and scannable.
-6. Use bold for key terms: amounts, dates, percentages.
-7. End with a one-line summary if the answer is complex.
-8. Never start with "According to" — start with the actual answer.
+1. Start with a direct one-sentence answer — never start with "According to".
+2. For lists of dates, milestones, clauses — use this EXACT bullet format:
+   • **Item name** — Date/Amount: consequence or detail
+3. For financial data use: **USD X,XXX,XXX** format.
+4. For schedules/tables use:
+   | Column 1 | Column 2 | Column 3 |
+   |---|---|---|
+   | value | value | value |
+5. Put citations [N] at the END of a paragraph only — never mid-sentence.
+6. Keep each bullet to ONE line.
+7. End complex answers with: "**Summary:** one sentence takeaway."
+8. Maximum 10 bullet points — prioritise highest-risk or most important items.
 
-Example good response:
+EXAMPLE — Key dates response:
+"This contract has **10 key milestones** from June 2026 to May 2036 [1]:
+
+- **Agreement Execution** — June 1, 2026: USD 15M upfront due
+- **MA Filing (India)** — Dec 31, 2026: USD 500K penalty if missed  
+- **Year 1 Sales Target** — May 31, 2027: Exclusivity at risk
+- **Term Expiry** — May 31, 2036: Auto-renewal or wind-down
+
+**Summary:** Non-renewal notice must be given by May 31, 2034."
+
+EXAMPLE — Liability cap response:
 "The liability cap is **USD 5,000,000** or 12 months of fees, whichever is greater [1].
-Exceptions: death/personal injury, fraud, and data breaches [2]."
 
-Example bad response:
-"According to [1], the liability cap as mentioned in clause 10.1 states that..."
+Exceptions where the cap does NOT apply:
+- Death or personal injury
+- Fraud or wilful misconduct  
+- Data breach liability (enhanced cap: **USD 15,000,000**) [2]"
 """
         if user_name:
             system_prompt += f" Address the user by their role: {role_context.split()[3] if len(role_context.split()) > 3 else 'User'}."

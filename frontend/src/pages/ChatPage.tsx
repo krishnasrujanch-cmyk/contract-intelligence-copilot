@@ -33,6 +33,37 @@ function Nav() {
   );
 }
 
+function formatMessage(text: string) {
+  // Bold: **text**
+  const parts = text.split(/(\*\*[^*]+\*\*|
+•[^
+]+|
+
+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2,-2)}</strong>;
+    }
+    if (part.startsWith("\n•")) {
+      return <div key={i} style={{ display:"flex", gap:8, margin:"4px 0" }}>
+        <span style={{ color:"#4f46e5", fontWeight:700, flexShrink:0 }}>•</span>
+        <span>{formatInline(part.slice(2))}</span>
+      </div>;
+    }
+    if (part === "\n\n") return <br key={i}/>;
+    return <span key={i}>{formatInline(part)}</span>;
+  });
+}
+
+function formatInline(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith("**") && p.endsWith("**")
+      ? <strong key={i} style={{ color:"#0f172a" }}>{p.slice(2,-2)}</strong>
+      : <span key={i}>{p}</span>
+  );
+}
+
 export default function ChatPage() {
   const [msgs, setMsgs] = useState<Msg[]>([{ id:"w", role:"assistant", content:"Hello! Ask me anything about your contracts — liability caps, renewal dates, payment terms, risks." }]);
   const [input, setInput] = useState("");
