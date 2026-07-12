@@ -62,7 +62,7 @@ async def upload_contract(
         original_filename=filename,
         file_path=str(dest),
         file_type=suffix.lstrip("."),
-        file_size=len(content),
+        
         status=ContractStatus.UPLOADED.value,
     )
     db.add(contract)
