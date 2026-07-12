@@ -96,7 +96,7 @@ export default function UsersPage() {
                 </td>
                 <td style={{ padding:"1rem 1.25rem", fontSize:"0.8rem", color:"#64748b" }}>{u.last_login?new Date(u.last_login).toLocaleDateString():"Never"}</td>
                 <td style={{ padding:"1rem 1.25rem" }}>
-                  {u.role==="reviewer"&&<button onClick={()=>openModal(u)} style={{ background:"#4f46e5", color:"#fff", border:"none", borderRadius:6, padding:"5px 12px", fontSize:"0.75rem", fontWeight:600, cursor:"pointer" }}>Assign Contracts</button>}
+                  {(u.role==="reviewer"||u.role==="viewer")&&<button onClick={()=>openModal(u)} style={{ background:"#4f46e5", color:"#fff", border:"none", borderRadius:6, padding:"5px 12px", fontSize:"0.75rem", fontWeight:600, cursor:"pointer" }}>Assign Contracts</button>}
                 </td>
               </tr>
             ))}</tbody>
