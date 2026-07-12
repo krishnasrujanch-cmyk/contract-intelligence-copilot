@@ -97,36 +97,19 @@ async def chat_query(
     effective_assigned = db_assigned_ids if current_user.role in ("viewer", "reviewer") else None
 
     # Build contextual query using recent history
+    # Expand follow-up queries using conversation history
     contextual_query = body.query
     if body.history:
-        # Detect follow-up pronouns and expand query with context
-        follow_up_triggers = ["those", "that", "it", "them", "these", "more", "share", "tell me more", "elaborate", "explain more"]
-        is_follow_up = any(t in body.query.lower() for t in follow_up_triggers)
-
-        if is_follow_up and len(body.history) >= 2:
-            # Get last assistant response to understand what "those/that" refers to
-            last_assistant = next(
-                (m["content"] for m in reversed(body.history) if m["role"] == "assistant"),
-                ""
-            )
-            last_user = next(
-                (m["content"] for m in reversed(body.history) if m["role"] == "user"),
-                ""
-            )
-            contextual_query = (
-                f"The user previously asked: '{last_user}' and received this answer: '{last_assistant[:200]}'. "
-                f"Now they ask: '{body.query}'. "
-                f"Please provide more detail about the same topic from the contract."
-            )
-        else:
-            # Non-follow-up: just add light context
-            last_user = next(
-                (m["content"] for m in reversed(body.history) if m["role"] == "user"),
-                ""
-            )
-            if last_user and last_user != body.query:
-                contextual_query = f"{body.query} (context: previously asked about '{last_user[:80]}')"
-
+        follow_ups = ["those","that","it","them","these","share","more","elaborate","explain"]
+        is_follow_up = any(t in body.query.lower() for t in follow_ups)
+        if is_follow_up:
+            last_a = next((m["content"] for m in reversed(body.history) if m["role"]=="assistant"),"")
+            last_q = next((m["content"] for m in reversed(body.history) if m["role"]=="user"),"")
+            if last_a:
+                contextual_query = (
+                    f"Previous question was '{last_q}' with answer '{last_a[:300]}'. "
+                    f"User now asks '{body.query}'. Retrieve more detail on same topic."
+                )
     rag_result = RAGPipeline().answer(
         query=contextual_query,
         role=current_user.role,
