@@ -325,9 +325,30 @@ Rules you must ALWAYS follow:
             "viewer":   "You are assisting a stakeholder with summary-level contract access.",
         }.get(role, "")
 
-        system_prompt = self._SYSTEM_BASE + f"\n\nUser context: {role_context}"
+        system_prompt = self._SYSTEM_BASE + f"""
+
+User context: {role_context}
+
+RESPONSE FORMATTING RULES (mandatory):
+1. Start with a direct one-sentence answer to the question.
+2. Use bullet points (•) for lists of 3 or more items.
+3. For tables or schedules, use a clean format:
+   • Item name: value/date/amount
+4. Put citations [N] at the END of the sentence, not in the middle.
+5. Keep sentences short and scannable.
+6. Use bold for key terms: amounts, dates, percentages.
+7. End with a one-line summary if the answer is complex.
+8. Never start with "According to" — start with the actual answer.
+
+Example good response:
+"The liability cap is **USD 5,000,000** or 12 months of fees, whichever is greater [1].
+Exceptions: death/personal injury, fraud, and data breaches [2]."
+
+Example bad response:
+"According to [1], the liability cap as mentioned in clause 10.1 states that..."
+"""
         if user_name:
-            system_prompt += f" User: {user_name}."
+            system_prompt += f" Address the user by their role: {role_context.split()[3] if len(role_context.split()) > 3 else 'User'}."
         if role == "viewer":
             system_prompt += self._VIEWER_ADDENDUM
 
