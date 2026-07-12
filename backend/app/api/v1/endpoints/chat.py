@@ -54,12 +54,19 @@ async def chat_query(
             safety_refused=True,
         )
 
-    # 2 — Get assigned contracts for reviewer RBAC
+    # 2 — Get assigned contracts for reviewer + viewer RBAC
     result = await db.execute(
         select(UserContractAssignment.contract_id)
         .where(UserContractAssignment.user_id == current_user.id)
     )
     assigned_ids = [str(r[0]) for r in result.all()] or None
+
+    # Viewer with no assignments blocked entirely
+    if current_user.role == "viewer" and not assigned_ids:
+        return ChatResponse(
+            answer="No contracts have been assigned to you yet. Please contact your administrator.",
+            safety_refused=False,
+        )
 
     # 3 — Resolve contract scope
     contract_id = body.contract_id or (body.contract_ids[0] if body.contract_ids else None)

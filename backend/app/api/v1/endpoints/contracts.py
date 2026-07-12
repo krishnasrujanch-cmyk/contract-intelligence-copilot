@@ -108,9 +108,19 @@ async def list_contracts(
             ).order_by(Contract.created_at.desc())
         )
     else:
+        # Viewer — only assigned contracts (same as reviewer)
+        assigned = await db.execute(
+            select(UserContractAssignment.contract_id)
+            .where(UserContractAssignment.user_id == current_user.id)
+        )
+        ids = [r[0] for r in assigned.all()]
+        if not ids:
+            return []  # No assignments = no contracts visible
         result = await db.execute(
-            select(Contract).where(Contract.org_id == current_user.org_id)
-            .order_by(Contract.created_at.desc())
+            select(Contract).where(
+                Contract.org_id == current_user.org_id,
+                Contract.id.in_(ids),
+            ).order_by(Contract.created_at.desc())
         )
 
     contracts = result.scalars().all()

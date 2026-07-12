@@ -126,10 +126,14 @@ class RoleFilter:
                 ]
             }
 
-        # viewer — level 0 document summaries only
+        # viewer — assigned contracts only, level=0 summary chunks only
+        if not assigned_contract_ids:
+            # Viewer with no assignments gets nothing — fail-safe
+            return {**base, "contract_id": {"$eq": "__NO_ACCESS__"}}
         return {
             "$and": [
                 base,
+                {"contract_id": {"$in": assigned_contract_ids}},
                 {"level": {"$eq": 0}},
             ]
         }
