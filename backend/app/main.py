@@ -112,8 +112,9 @@ def _register_middleware(app: FastAPI) -> None:
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
     # ── Request ID & Timing ───────────────────────────────────────────────────
