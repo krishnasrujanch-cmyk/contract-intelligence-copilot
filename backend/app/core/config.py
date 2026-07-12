@@ -75,6 +75,16 @@ class Settings(BaseSettings):
 
     # ── PostgreSQL ────────────────────────────────────────────────────────────
     database_url:          str = Field(..., description="asyncpg connection URL")
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def fix_database_url(cls, v: str) -> str:
+        # Railway provides postgresql:// but asyncpg needs postgresql+asyncpg://
+        if v and v.startswith("postgresql://") and "+asyncpg" not in v:
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if v and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        return v
     database_pool_size:    int = Field(default=10, ge=1, le=50)
     database_max_overflow: int = Field(default=20, ge=0, le=100)
     database_pool_timeout: int = Field(default=30, ge=5, le=120)
