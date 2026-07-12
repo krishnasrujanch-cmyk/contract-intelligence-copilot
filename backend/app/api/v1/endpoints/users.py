@@ -79,8 +79,8 @@ async def assign_contracts(user_id: str, body: AssignContractsRequest,
     target_user = result.scalar_one_or_none()
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found.")
-    if target_user.role != "reviewer":
-        raise HTTPException(status_code=400, detail=f"Assignment only for reviewer role. Got: {target_user.role}")
+    if target_user.role not in ("reviewer", "viewer"):
+        raise HTTPException(status_code=400, detail=f"Assignment only for reviewer and viewer roles. Got: {target_user.role}")
 
     valid_ids: list[uuid.UUID] = []
     for cid_str in body.contract_ids:
