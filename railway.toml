@@ -1,7 +1,9 @@
 [build]
 builder = "nixpacks"
+buildCommand = "pip install -r requirements.txt"
 
 [deploy]
-startCommand = "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "cd /app/backend && bash railway_start.sh"
 restartPolicyType = "on_failure"
 healthcheckPath = "/health"
+healthcheckTimeout = 300
