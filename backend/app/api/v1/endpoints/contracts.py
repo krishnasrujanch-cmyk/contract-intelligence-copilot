@@ -1,323 +1,174 @@
 """
 Contract management endpoints.
-
-POST /upload    → validate + queue async processing (returns job_id)
-GET  /          → list contracts (RBAC scoped)
-GET  /{id}      → contract detail + processing status
-DELETE /{id}    → admin only — soft delete
-
-Upload security:
-  - File validated by magic bytes (not extension)
-  - Max size enforced before reading into memory
-  - Virus/malware scan hook (ClamAV stub — activate in production)
-  - Contract stored at opaque UUID path (not original filename)
-  - SSE endpoint for real-time processing progress
+Reprocess runs synchronously — no silent background failures.
 """
 from __future__ import annotations
 
 import uuid
+import json
 from pathlib import Path
 
-import aiofiles
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.middleware.auth import AdminUser, AnyAuthenticatedUser, CurrentUser
-from app.core.config import settings
+from app.api.v1.middleware.auth import CurrentUser
 from app.core.logging import get_logger
-from app.domain.enums import ContractStatus, AuditAction, ContractStatus, UserRole
-from app.domain.models import AuditLog, Contract, User, UserContractAssignment
+from app.domain.enums import ContractStatus
+from app.domain.models import AuditLog, Contract, Clause, UserContractAssignment
 from app.infrastructure.database.session import get_db
-from app.infrastructure.parsers import ParserFactory
 
 logger = get_logger(__name__)
 router = APIRouter()
 
-_ALLOWED_MIME = {"application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
 
+# ── Upload ─────────────────────────────────────────────────────────────────────
 
-class ContractResponse(BaseModel):
-    id:           str
-    title:        str
-    status:       str
-    risk_score:   int | None
-    overall_risk: str | None
-    file_type:    str | None
-    page_count:   int | None
-    created_at:   str
-
-    class Config:
-        from_attributes = True
-
-
-# ── POST /contracts/upload ────────────────────────────────────────────────────
-
-@router.post(
-    "/upload",
-    status_code=status.HTTP_202_ACCEPTED,
-    summary="Upload a contract for AI analysis",
-)
+@router.post("/upload", status_code=200)
 async def upload_contract(
-    file:         UploadFile = File(...),
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
     current_user: CurrentUser = None,
-    db:           AsyncSession = Depends(get_db),
-) -> dict:
-    """
-    Accept a contract file, validate it, persist it, and queue async analysis.
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in ("admin", "reviewer"):
+        raise HTTPException(status_code=403, detail="Not authorized.")
 
-    Returns immediately with a job_id — use GET /contracts/{id} to poll status
-    or SSE endpoint /contracts/{id}/progress for real-time updates.
-    """
-    if current_user.role not in (UserRole.ADMIN.value, UserRole.REVIEWER.value):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload requires admin or reviewer role.")
+    allowed = {".pdf", ".docx", ".doc", ".txt"}
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in allowed:
+        raise HTTPException(status_code=400, detail=f"File type {suffix} not supported.")
 
-    # Read first 2KB for MIME detection (avoid reading full file for type check)
-    header_bytes = await file.read(2048)
-    await file.seek(0)
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Max 50MB.")
 
-    # Validate by magic bytes — never trust the extension
-    try:
-        ParserFactory.get_parser(header_bytes)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc))
+    import os
+    upload_dir = Path(os.environ.get("UPLOAD_DIR", "/workspaces/contract-intelligence-copilot/backend/uploads"))
+    upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Enforce max file size
-    all_bytes = await file.read()
-    if len(all_bytes) > settings.max_file_size_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File exceeds {settings.max_upload_size_mb} MB limit.",
-        )
+    cid = uuid.uuid4()
+    filename = file.filename or f"{cid}{suffix}"
+    title = Path(filename).stem
+    dest = upload_dir / f"{cid}{suffix}"
+    dest.write_bytes(content)
 
-    # Store at opaque UUID path — original filename is sanitised separately
-    contract_id   = str(uuid.uuid4())
-    safe_extension = Path(file.filename or "upload").suffix.lower()
-    if safe_extension not in {".pdf", ".docx", ".doc"}:
-        safe_extension = ".pdf"
-    stored_path = settings.upload_dir / f"{contract_id}{safe_extension}"
-
-    async with aiofiles.open(stored_path, "wb") as f:
-        await f.write(all_bytes)
-
-    # Create contract record (status: UPLOADED)
     contract = Contract(
-        id=uuid.UUID(contract_id),
+        id=cid,
         org_id=current_user.org_id,
         uploaded_by=current_user.id,
-        title=Path(file.filename or "Untitled Contract").stem,
+        title=title,
+        original_filename=filename,
+        file_path=str(dest),
+        file_type=suffix.lstrip("."),
+        file_size=len(content),
         status=ContractStatus.UPLOADED.value,
-        file_path=str(stored_path),
-        original_filename=Path(file.filename or "upload").name[:255],
-        file_size_bytes=len(all_bytes),
     )
     db.add(contract)
-
-    # Audit
     db.add(AuditLog(
         org_id=current_user.org_id,
         user_id=current_user.id,
         user_role=current_user.role,
-        action=AuditAction.CONTRACT_UPLOAD.value,
+        action="contract_upload",
         resource_type="contract",
-        resource_id=uuid.UUID(contract_id),
-        log_context={"filename_length": len(file.filename or "")},
+        resource_id=cid,
+        log_context={"filename": filename, "size": len(content)},
     ))
+    await db.commit()
 
-    await db.flush()  # Get DB ID before queuing
+    # Background processing
+    background_tasks.add_task(_process_contract, str(cid), str(current_user.org_id))
 
-    # Queue async processing via Celery
-    try:
-        from app.tasks.document import process_contract_task
-        job = process_contract_task.apply_async(
-            args=[contract_id, str(current_user.org_id)],
-            task_id=contract_id,
-            queue="document_processing",
-        )
-
-        # Update contract with job ID
-        contract.processing_job_id = job.id
-        contract.status = ContractStatus.PROCESSING.value
-
-    except Exception as exc:
-        logger.error("task_queue_failed", contract_id=contract_id, error=str(exc))
-        # Contract saved but not yet processing — user can retry
-
-    logger.info("contract_uploaded", contract_id=contract_id, org_id=str(current_user.org_id))
-
-    return {
-        "contract_id":  contract_id,
-        "status":       contract.status,
-        "message":      "Contract uploaded. Analysis in progress.",
-        "poll_url":     f"/api/v1/contracts/{contract_id}",
-        "progress_url": f"/api/v1/contracts/{contract_id}/progress",
-    }
+    return {"contract_id": str(cid), "status": "uploaded", "message": f"Contract '{title}' uploaded successfully."}
 
 
-# ── GET /contracts ────────────────────────────────────────────────────────────
+# ── List ───────────────────────────────────────────────────────────────────────
 
-@router.get("", summary="List all contracts (RBAC scoped)")
+@router.get("", status_code=200)
 async def list_contracts(
-    current_user: CurrentUser = None,
-    db:           AsyncSession = Depends(get_db),
-) -> list[dict]:
-    """
-    Return contracts visible to the current user.
-      Admin    → all org contracts
-      Reviewer → only assigned contracts
-      Viewer   → all contracts, summary fields only
-    """
-    if current_user.role in (UserRole.ADMIN.value, UserRole.VIEWER.value):
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role == "admin":
         result = await db.execute(
-            select(Contract)
-            .where(Contract.org_id == current_user.org_id)
+            select(Contract).where(Contract.org_id == current_user.org_id)
             .order_by(Contract.created_at.desc())
         )
-        contracts = result.scalars().all()
-    else:
-        # Reviewer: only assigned contracts
+    elif current_user.role == "reviewer":
+        assigned = await db.execute(
+            select(UserContractAssignment.contract_id)
+            .where(UserContractAssignment.user_id == current_user.id)
+        )
+        ids = [r[0] for r in assigned.all()]
         result = await db.execute(
-            select(Contract)
-            .join(UserContractAssignment, UserContractAssignment.contract_id == Contract.id)
-            .where(
-                UserContractAssignment.user_id == current_user.id,
+            select(Contract).where(
                 Contract.org_id == current_user.org_id,
-            )
+                Contract.id.in_(ids) if ids else Contract.id.is_(None),
+            ).order_by(Contract.created_at.desc())
+        )
+    else:
+        result = await db.execute(
+            select(Contract).where(Contract.org_id == current_user.org_id)
             .order_by(Contract.created_at.desc())
         )
-        contracts = result.scalars().all()
 
+    contracts = result.scalars().all()
     return [
         {
-            "id":           str(c.id),
-            "title":        c.title,
-            "status":       c.status,
-            "risk_score":   c.risk_score,
+            "id": str(c.id),
+            "title": c.title,
+            "status": c.status,
             "overall_risk": c.overall_risk,
-            "file_type":    c.file_type,
-            "page_count":   c.page_count,
-            "created_at":   c.created_at.isoformat(),
+            "risk_score": c.risk_score,
+            "page_count": c.page_count,
+            "file_type": c.file_type,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
         }
         for c in contracts
     ]
 
 
-# ── GET /contracts/{contract_id} ──────────────────────────────────────────────
+# ── Get single ─────────────────────────────────────────────────────────────────
 
-@router.get("/{contract_id}", summary="Get contract detail")
+@router.get("/{contract_id}", status_code=200)
 async def get_contract(
-    contract_id:  str,
-    current_user: CurrentUser = None,
-    db:           AsyncSession = Depends(get_db),
-) -> dict:
-    """Return contract details. RBAC enforced — reviewers limited to assigned contracts."""
-    contract = await _get_contract_with_access_check(contract_id, current_user, db)
+    contract_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        cid = uuid.UUID(contract_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid contract_id.")
+
+    result = await db.execute(
+        select(Contract).where(Contract.id == cid, Contract.org_id == current_user.org_id)
+    )
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Contract not found.")
 
     return {
-        "id":              str(contract.id),
-        "title":           contract.title,
-        "status":          contract.status,
-        "contract_type":   contract.contract_type,
-        "counterparty":    contract.counterparty,
-        "risk_score":      contract.risk_score,
-        "overall_risk":    contract.overall_risk,
-        "signed_date":     contract.signed_date.isoformat() if contract.signed_date else None,
-        "effective_date":  contract.effective_date.isoformat() if contract.effective_date else None,
-        "expiry_date":     contract.expiry_date.isoformat() if contract.expiry_date else None,
-        "auto_renewal":    contract.auto_renewal,
-        "page_count":      contract.page_count,
-        "has_tables":      contract.has_tables,
-        "has_images":      contract.has_images,
-        "ocr_confidence":  float(contract.ocr_confidence) if contract.ocr_confidence else None,
-        "processing_job_id": contract.processing_job_id,
-        "created_at":      contract.created_at.isoformat(),
+        "id": str(c.id),
+        "title": c.title,
+        "status": c.status,
+        "overall_risk": c.overall_risk,
+        "risk_score": c.risk_score,
+        "page_count": c.page_count,
+        "file_type": c.file_type,
+        "created_at": c.created_at.isoformat() if c.created_at else None,
     }
 
 
-# ── DELETE /contracts/{contract_id} ──────────────────────────────────────────
-
-@router.delete("/{contract_id}", status_code=status.HTTP_200_OK, summary="Delete contract (admin only)")
-async def delete_contract(
-    contract_id:  str,
-    current_user: AdminUser = None,
-    db:           AsyncSession = Depends(get_db),
-) -> None:
-    """Soft-delete a contract and remove its vector embeddings."""
-    contract = await _get_contract_with_access_check(contract_id, current_user, db)
-
-    # Remove from ChromaDB
-    try:
-        from app.infrastructure.vector_store.chroma_client import delete_contract_embeddings
-        delete_contract_embeddings(str(contract.id), str(contract.org_id))
-    except Exception as exc:
-        logger.warning("embedding_deletion_failed", contract_id=contract_id, error=str(exc))
-
-    # Soft delete — preserve audit trail
-    contract.status = ContractStatus.ARCHIVED.value
-
-    db.add(AuditLog(
-        org_id=current_user.org_id,
-        user_id=current_user.id,
-        user_role=current_user.role,
-        action=AuditAction.CONTRACT_DELETE.value,
-        resource_type="contract",
-        resource_id=uuid.UUID(contract_id),
-        context={},
-    ))
-
-
-# ── Shared access check helper ────────────────────────────────────────────────
-
-async def _get_contract_with_access_check(
-    contract_id:  str,
-    current_user: User,
-    db:           AsyncSession,
-) -> Contract:
-    """
-    Fetch contract and verify the current user has access.
-    Reviewers: only assigned contracts.
-    Raises 404 (not 403) to prevent contract enumeration.
-    """
-    try:
-        contract_uuid = uuid.UUID(contract_id)
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found.")
-
-    result = await db.execute(
-        select(Contract).where(
-            Contract.id == contract_uuid,
-            Contract.org_id == current_user.org_id,
-        )
-    )
-    contract = result.scalar_one_or_none()
-
-    if contract is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found.")
-
-    # Reviewer access check
-    if current_user.role == UserRole.REVIEWER.value:
-        assignment = await db.execute(
-            select(UserContractAssignment).where(
-                UserContractAssignment.user_id == current_user.id,
-                UserContractAssignment.contract_id == contract_uuid,
-            )
-        )
-        if assignment.scalar_one_or_none() is None:
-            # Return 404 not 403 — prevents enumeration of contract IDs
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found.")
-
-    return contract
-
+# ── Reprocess — SYNCHRONOUS, no silent failures ────────────────────────────────
 
 @router.post("/{contract_id}/reprocess", status_code=200)
 async def reprocess_contract(
     contract_id: str,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-) -> dict:
-    """Reprocess a stuck or failed contract — admin/reviewer only."""
+):
     if current_user.role not in ("admin", "reviewer"):
         raise HTTPException(status_code=403, detail="Not authorized.")
     try:
@@ -325,34 +176,145 @@ async def reprocess_contract(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid contract_id.")
 
-    from sqlalchemy import select, update
-    from app.domain.models import Contract
-    from app.domain.enums import ContractStatus, ContractStatus
-
-    r = await db.execute(select(Contract).where(
-        Contract.id == cid,
-        Contract.org_id == current_user.org_id,
-    ))
-    contract = r.scalar_one_or_none()
+    result = await db.execute(
+        select(Contract).where(Contract.id == cid, Contract.org_id == current_user.org_id)
+    )
+    contract = result.scalar_one_or_none()
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found.")
 
     # Reset status
-    await db.execute(update(Contract).where(Contract.id == cid)
-                     .values(status=ContractStatus.UPLOADED.value,
-                             risk_score=None, overall_risk=None))
+    await db.execute(
+        update(Contract).where(Contract.id == cid)
+        .values(status=ContractStatus.UPLOADED.value, risk_score=None, overall_risk=None)
+    )
+    await db.execute(delete(Clause).where(Clause.contract_id == cid))
     await db.commit()
 
-    # Run pipeline in background thread to avoid blocking the response
-    import asyncio
-    from app.tasks.document import _run_pipeline
+    # Run synchronously — no background task, no silent failure
+    try:
+        clauses_saved, avg, overall = await _extract_and_save(
+            cid, current_user.org_id, contract
+        )
+        return {
+            "status": "analyzed",
+            "contract_id": contract_id,
+            "clauses": clauses_saved,
+            "avg_risk": avg,
+            "overall_risk": overall,
+        }
+    except Exception as exc:
+        logger.error("reprocess_failed", contract_id=contract_id, error=str(exc), exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Reprocess failed: {exc}")
 
-    async def _bg():
-        try:
-            await _run_pipeline(str(cid), str(current_user.org_id))
-        except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error(f"Reprocess failed: {exc}")
 
-    asyncio.create_task(_bg())
-    return {"status": "reprocessing", "contract_id": contract_id}
+# ── Shared extraction logic ────────────────────────────────────────────────────
+
+async def _extract_and_save(
+    cid: uuid.UUID,
+    org_id: uuid.UUID,
+    contract: Contract,
+) -> tuple[int, int, str]:
+    """Parse → mask → LLM extract → save clauses → index ChromaDB. Returns (count, avg, overall)."""
+    from app.infrastructure.parsers import ParserFactory
+    from app.infrastructure.pii.presidio_engine import anonymize_text, initialise_pii_engine
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from app.infrastructure.llm.router import AgentRole, LLMRouter
+    from app.infrastructure.llm.json_parser import parse_clauses
+    from app.agents.rag.pipeline import RAGPipeline
+    from app.infrastructure.database.session import AsyncSessionLocal
+
+    await initialise_pii_engine()
+
+    raw_bytes = Path(contract.file_path).read_bytes()
+    parser = ParserFactory.get_parser(raw_bytes)
+    parsed = parser.parse(raw_bytes, contract.original_filename)
+    logger.info("contract_parsed", pages=parsed.page_count, chars=len(parsed.text))
+
+    # Mask for LLM extraction only
+    masked, _ = anonymize_text(parsed.text, str(cid))
+
+    # LLM extraction
+    router = LLMRouter.get_instance()
+    types = (
+        "confidentiality, termination, ip_ownership, liability, indemnification, "
+        "payment, auto_renewal, governing_law, force_majeure, financial_covenant, "
+        "event_of_default, security, data_protection, sla, penalty, general"
+    )
+    prompt = (
+        "Extract ALL clauses from this contract. Clause types: " + types + ". "
+        "Return ONLY valid JSON: {\"clauses\": [{\"clause_type\": \"...\", "
+        "\"title\": \"...\", \"raw_text\": \"...\", \"summary\": \"...\", "
+        "\"risk_score\": 50, \"risk_level\": \"medium\", "
+        "\"risk_reason\": \"...\", \"confidence\": 0.9}]}"
+    )
+
+    result = await router.invoke(
+        AgentRole.EXTRACTOR,
+        [SystemMessage(content=prompt), HumanMessage(content=masked)],
+    )
+    raw = result.content if hasattr(result, "content") else str(result)
+    clauses_data = parse_clauses(raw)
+    logger.info("clauses_extracted", count=len(clauses_data))
+
+    # Save to DB + index ChromaDB with original (unmasked) text
+    async with AsyncSessionLocal() as db:
+        for c in clauses_data:
+            s = c.get("risk_score")
+            if isinstance(s, str):
+                try: s = int(s)
+                except: s = None
+            db.add(Clause(
+                contract_id=cid, org_id=org_id,
+                clause_type=c.get("clause_type", "general"),
+                title=c.get("title", "")[:500],
+                raw_text=c.get("raw_text", ""),
+                summary=c.get("summary", ""),
+                risk_score=s, risk_level=c.get("risk_level"),
+                risk_reason=c.get("risk_reason"),
+                extraction_confidence=c.get("confidence"),
+                flagged_for_review=(s or 0) >= 80,
+                extracted_data={},
+            ))
+
+        scores = [c.get("risk_score") for c in clauses_data if isinstance(c.get("risk_score"), int)]
+        avg = int(sum(scores) / len(scores)) if scores else 0
+        mx = max(scores) if scores else 0
+        overall = "critical" if mx >= 80 else "high" if mx >= 70 else "medium" if mx >= 40 else "low"
+
+        await db.execute(
+            update(Contract).where(Contract.id == cid).values(
+                status=ContractStatus.ANALYZED.value,
+                risk_score=avg, overall_risk=overall,
+                page_count=parsed.page_count,
+                file_type=parsed.file_type,
+            )
+        )
+        await db.commit()
+
+    # Index original text into ChromaDB (no PII masking for RAG)
+    try:
+        RAGPipeline().index_contract(parsed.text, str(cid), str(org_id))
+        logger.info("chroma_indexed", contract_id=str(cid))
+    except Exception as e:
+        logger.warning("chroma_index_failed", error=str(e))
+
+    return len(clauses_data), avg, overall
+
+
+async def _process_contract(contract_id: str, org_id: str):
+    """Background task for new uploads."""
+    from app.infrastructure.database.session import AsyncSessionLocal
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Contract).where(Contract.id == uuid.UUID(contract_id))
+            )
+            contract = result.scalar_one_or_none()
+            if not contract:
+                return
+            await _extract_and_save(
+                uuid.UUID(contract_id), uuid.UUID(org_id), contract
+            )
+    except Exception as exc:
+        logger.error("background_process_failed", contract_id=contract_id, error=str(exc))
