@@ -222,3 +222,17 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
 # ── Module-level app instance ─────────────────────────────────────────────────
 app: FastAPI = create_application()
+
+# Serve frontend static files
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+_frontend_dist = "/workspaces/contract-intelligence-copilot/frontend/dist"
+if os.path.exists(_frontend_dist):
+    app.mount("/assets", StaticFiles(directory=f"{_frontend_dist}/assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        index = f"{_frontend_dist}/index.html"
+        return FileResponse(index)
