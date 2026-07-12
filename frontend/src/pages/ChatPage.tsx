@@ -33,34 +33,59 @@ function Nav() {
   );
 }
 
-function formatMessage(text: string) {
-  // Bold: **text**
-  const parts = text.split(/(\*\*[^*]+\*\*|
-•[^
-]+|
-
-)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2,-2)}</strong>;
-    }
-    if (part.startsWith("\n•")) {
-      return <div key={i} style={{ display:"flex", gap:8, margin:"4px 0" }}>
-        <span style={{ color:"#4f46e5", fontWeight:700, flexShrink:0 }}>•</span>
-        <span>{formatInline(part.slice(2))}</span>
-      </div>;
-    }
-    if (part === "\n\n") return <br key={i}/>;
-    return <span key={i}>{formatInline(part)}</span>;
-  });
+function formatMessage(text: string): React.ReactNode {
+  if (!text) return null;
+  const lines = text.split("\n");
+  return (
+    <div>
+      {lines.map((line, i) => {
+        // Bullet line
+        if (line.startsWith("• ") || line.startsWith("* ")) {
+          const inner = line.slice(2);
+          return (
+            <div key={i} style={{ display:"flex", gap:8, margin:"3px 0", alignItems:"flex-start" }}>
+              <span style={{ color:"#4f46e5", fontWeight:700, flexShrink:0, marginTop:2 }}>•</span>
+              <span style={{ lineHeight:1.6 }}>{renderBold(inner)}</span>
+            </div>
+          );
+        }
+        // Summary line
+        if (line.startsWith("**Summary:**") || line.startsWith("Summary:")) {
+          return <div key={i} style={{ marginTop:8, padding:"6px 10px", background:"#f0fdf4", borderRadius:6, borderLeft:"3px solid #16a34a", fontSize:"0.875rem" }}>{renderBold(line)}</div>;
+        }
+        // Table row
+        if (line.startsWith("|") && line.endsWith("|")) {
+          if (line.includes("---")) return null;
+          const cells = line.split("|").filter(c => c.trim());
+          return (
+            <div key={i} style={{ display:"flex", gap:0, borderBottom:"1px solid #f1f5f9" }}>
+              {cells.map((c, j) => (
+                <div key={j} style={{ flex:1, padding:"4px 8px", fontSize:"0.8rem", fontWeight:j===0?"600":"400", background:j===0?"#f8fafc":"#fff" }}>
+                  {renderBold(c.trim())}
+                </div>
+              ))}
+            </div>
+          );
+        }
+        // Empty line
+        if (!line.trim()) return <div key={i} style={{ height:8 }} />;
+        // Normal line
+        return <div key={i} style={{ marginBottom:2, lineHeight:1.6 }}>{renderBold(line)}</div>;
+      })}
+    </div>
+  );
 }
 
-function formatInline(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((p, i) =>
-    p.startsWith("**") && p.endsWith("**")
-      ? <strong key={i} style={{ color:"#0f172a" }}>{p.slice(2,-2)}</strong>
-      : <span key={i}>{p}</span>
+function renderBold(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith("**") && p.endsWith("**")
+          ? <strong key={i} style={{ color:"#0f172a" }}>{p.slice(2,-2)}</strong>
+          : <span key={i}>{p}</span>
+      )}
+    </>
   );
 }
 
@@ -109,7 +134,7 @@ export default function ChatPage() {
             {m.role==="assistant"&&<div style={{ width:32, height:32, borderRadius:"50%", background:"#4f46e5", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginRight:10, marginTop:4 }}><span style={{ color:"#fff", fontSize:14 }}>⚖</span></div>}
             <div style={{ maxWidth:"75%" }}>
               <div style={{ padding:"0.875rem 1.125rem", borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px", background:m.role==="user"?"#4f46e5":m.isError?"#fef2f2":"#fff", color:m.role==="user"?"#fff":m.isError?"#dc2626":"#374151", fontSize:"0.875rem", lineHeight:1.6, boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}>
-                {m.content}
+                {m.role==="assistant" ? formatMessage(m.content) : m.content}
               </div>
               {m.citations&&m.citations.length>0&&(
                 <div style={{ marginTop:6, display:"flex", flexWrap:"wrap", gap:4 }}>
