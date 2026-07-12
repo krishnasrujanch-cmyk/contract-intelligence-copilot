@@ -2,12 +2,20 @@
 /**
  * Configured Axios instance with JWT interceptor and auto-refresh.
  */
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  (window.location.hostname.includes("app.github.dev")
-    ? `https://${window.location.hostname.replace("-5173", "-8000").replace("-5174", "-8000")}`
-    : "http://localhost:8000");
+// Auto-detect API URL for both localhost and Codespaces
+const API_BASE_URL = (() => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== "undefined" &&
+      window.location.hostname.includes("app.github.dev")) {
+    return window.location.origin.replace(
+      /-\d+\.app\.github\.dev/,
+      "-8000.app.github.dev"
+    );
+  }
+  return "";
+})();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -16,56 +24,95 @@ export const apiClient = axios.create({
 });
 
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: unknown) => void }> = [];
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}> = [];
 
 const processQueue = (error: unknown, token: string | null = null) => {
-  failedQueue.forEach((p) => { if (error) p.reject(error); else if (token) p.resolve(token); });
+  failedQueue.forEach((p) => {
+    if (error) p.reject(error);
+    else if (token) p.resolve(token);
+  });
   failedQueue = [];
 };
 
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+// Request interceptor — attach Bearer token
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = sessionStorage.getItem("access_token");
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes("/auth/")
-    ) {
+// Response interceptor — auto-refresh on 401
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => { failedQueue.push({ resolve, reject }); })
-          .then((token) => { originalRequest.headers["Authorization"] = `Bearer ${token}`; return apiClient(originalRequest); });
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+          return apiClient(originalRequest);
+        });
       }
+
       originalRequest._retry = true;
       isRefreshing = true;
+
+      const refreshToken = sessionStorage.getItem("refresh_token");
+      if (!refreshToken) {
+        sessionStorage.clear();
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
+
       try {
-        const { useAuthStore } = await import("../store/authStore");
-        await useAuthStore.getState().refreshAccessToken();
-        const newToken = useAuthStore.getState().accessToken;
-        if (!newToken) throw new Error("No token after refresh");
-        processQueue(null, newToken);
-        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+        const response = await axios.post(
+          `${API_BASE_URL}/api/v1/auth/refresh`,
+          { refresh_token: refreshToken }
+        );
+        const { access_token } = response.data;
+        sessionStorage.setItem("access_token", access_token);
+        processQueue(null, access_token);
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        }
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        const { useAuthStore } = await import("../store/authStore");
-        useAuthStore.getState().clearAuth();
+        sessionStorage.clear();
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );
 
-export interface ApiError { detail: string; trace_id?: string; }
-
 export function getErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const data = error.response?.data as ApiError | undefined;
-    return data?.detail ?? error.message ?? "An unexpected error occurred";
+  if (error instanceof AxiosError) {
+    return (
+      error.response?.data?.detail ||
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred"
+    );
   }
-  return error instanceof Error ? error.message : "An unexpected error occurred";
+  return String(error);
 }
