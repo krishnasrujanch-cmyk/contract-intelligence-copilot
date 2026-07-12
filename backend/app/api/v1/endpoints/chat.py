@@ -54,19 +54,22 @@ async def chat_query(
             safety_refused=True,
         )
 
-    # 2 — Get assigned contracts for reviewer + viewer RBAC
+    # 2 — Get assigned contracts from DB for reviewer + viewer RBAC
     result = await db.execute(
         select(UserContractAssignment.contract_id)
         .where(UserContractAssignment.user_id == current_user.id)
     )
-    assigned_ids = [str(r[0]) for r in result.all()] or None
+    db_assigned_ids = [str(r[0]) for r in result.all()]
 
     # Viewer with no assignments blocked entirely
-    if current_user.role == "viewer" and not assigned_ids:
+    if current_user.role == "viewer" and not db_assigned_ids:
         return ChatResponse(
             answer="No contracts have been assigned to you yet. Please contact your administrator.",
             safety_refused=False,
         )
+
+    # Use DB assignments for RBAC — not what frontend sends (security)
+    assigned_ids = db_assigned_ids or None
 
     # 3 — Resolve contract scope
     contract_id = body.contract_id or (body.contract_ids[0] if body.contract_ids else None)
@@ -75,12 +78,17 @@ async def chat_query(
     from app.agents.rag.pipeline import RAGPipeline
     from app.infrastructure.pii.presidio_engine import deanonymize_text
 
+    # For viewer: always use DB assignments, ignore frontend contract_id
+    # For admin/reviewer: use frontend contract_id if provided
+    effective_contract_id = None if current_user.role == "viewer" else contract_id
+    effective_assigned = db_assigned_ids if current_user.role in ("viewer", "reviewer") else None
+
     rag_result = RAGPipeline().answer(
         query=body.query,
         role=current_user.role,
         org_id=str(current_user.org_id),
-        assigned_contract_ids=assigned_ids,
-        contract_id=contract_id,
+        assigned_contract_ids=effective_assigned,
+        contract_id=effective_contract_id,
         n_results=6,
     )
 
