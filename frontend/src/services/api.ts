@@ -4,7 +4,10 @@
  */
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (window.location.hostname.includes("app.github.dev")
+    ? `https://${window.location.hostname.replace("-5173", "-8000").replace("-5174", "-8000")}`
+    : "http://localhost:8000");
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
