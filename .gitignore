@@ -24,7 +24,6 @@ venv/
 env/
 .eggs/
 *.egg-info/
-dist/
 build/
 .pytest_cache/
 .coverage
@@ -34,7 +33,6 @@ htmlcov/
 
 # ── Node / Frontend ───────────────────────────────────────────────────────────
 frontend/node_modules/
-frontend/dist/
 frontend/.vite/
 *.tsbuildinfo
 
@@ -64,5 +62,3 @@ logs/
 alembic/versions/__pycache__/
 
 # Railway - include built frontend
-frontend/dist/
-frontend/dist/**
