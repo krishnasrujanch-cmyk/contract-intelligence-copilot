@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pip install -r requirements.txt && cd frontend && npm install && VITE_API_URL=https://contract-intelligence-copilot-dev.up.railway.app npm run build && cd .."
+buildCommand = "pip install -r requirements.txt"
 
 [deploy]
 startCommand = "cd /app/backend && bash railway_start.sh"

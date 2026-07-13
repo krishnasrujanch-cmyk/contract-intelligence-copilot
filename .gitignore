@@ -62,3 +62,7 @@ logs/
 # Migration files ARE committed (they define schema history)
 # But never commit temp files
 alembic/versions/__pycache__/
+
+# Railway - include built frontend
+frontend/dist/
+frontend/dist/**
