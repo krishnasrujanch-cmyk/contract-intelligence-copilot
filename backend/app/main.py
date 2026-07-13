@@ -58,14 +58,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("database_connected")
 
     # Initialise ChromaDB client (lazy — validates connectivity)
-    from app.infrastructure.vector_store.chroma_client import initialise_chroma
-    await initialise_chroma()
-    logger.info("chromadb_initialised")
+    # ChromaDB lazy-loads on first request to save Railway memory
+    # from app.infrastructure.vector_store.chroma_client import initialise_chroma
+    # await initialise_chroma()
+    logger.info("chromadb_lazy_load_enabled")
 
     # Initialise PII engine (loads spaCy model — can take ~10s first time)
-    from app.infrastructure.pii.presidio_engine import initialise_pii_engine
-    await initialise_pii_engine()
-    logger.info("pii_engine_initialised")
+    # PII/spaCy lazy-loads on first request to save Railway memory
+    # from app.infrastructure.pii.presidio_engine import initialise_pii_engine
+    # await initialise_pii_engine()
+    logger.info("pii_lazy_load_enabled")
 
     logger.info("application_ready")
 
