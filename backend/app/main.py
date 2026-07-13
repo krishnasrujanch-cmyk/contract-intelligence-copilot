@@ -230,7 +230,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-_frontend_dist = "/workspaces/contract-intelligence-copilot/frontend/dist"
+# Auto-detect frontend dist path
+import os as _os
+for _frontend_dist in [
+    "/app/frontend/dist",
+    _os.path.join(_os.path.dirname(__file__), "../../../frontend/dist"),
+    _os.path.join(_os.path.dirname(__file__), "../../frontend/dist"),
+    "/workspaces/contract-intelligence-copilot/frontend/dist",
+]:
+    if _os.path.exists(_frontend_dist):
+        break
 if os.path.exists(_frontend_dist):
     app.mount("/assets", StaticFiles(directory=f"{_frontend_dist}/assets"), name="assets")
 
