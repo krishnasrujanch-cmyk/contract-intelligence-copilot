@@ -49,19 +49,24 @@ async def setup():
         org_id = str(org_row['id'])
         print(f'Using org: {org_id}')
 
-    existing = await conn.fetchval("SELECT COUNT(*) FROM users")
-    if existing == 0:
-        for email, name, password, role in [
-            ('admin@clm.demo', 'Admin User', 'Admin@Demo2026!', 'admin'),
-            ('reviewer@clm.demo', 'Reviewer User', 'Review@Demo2026!', 'reviewer'),
-            ('viewer@clm.demo', 'Viewer User', 'View@Demo2026!', 'viewer'),
-        ]:
-            hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(12)).decode()
-            await conn.execute(
-                'INSERT INTO users (id, org_id, email, password_hash, full_name, role, is_active, login_attempts) VALUES ($1,$2,$3,$4,$5,$6,TRUE,0)',
-                str(uuid.uuid4()), org_id, email, hashed, name, role
-            )
-            print(f'Created: {email}')
+    # Use advisory lock to prevent duplicate seeding from multiple instances
+    async with conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock(123456789)")
+        existing = await conn.fetchval("SELECT COUNT(*) FROM users WHERE email='admin@clm.demo'")
+        if existing == 0:
+            for email, name, password, role in [
+                ('admin@clm.demo', 'Admin User', 'Admin@Demo2026!', 'admin'),
+                ('reviewer@clm.demo', 'Reviewer User', 'Review@Demo2026!', 'reviewer'),
+                ('viewer@clm.demo', 'Viewer User', 'View@Demo2026!', 'viewer'),
+            ]:
+                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(12)).decode()
+                await conn.execute(
+                    'INSERT INTO users (id, org_id, email, password_hash, full_name, role, is_active, login_attempts) VALUES ($1,$2,$3,$4,$5,$6,TRUE,0) ON CONFLICT (email) DO NOTHING',
+                    str(uuid.uuid4()), org_id, email, hashed, name, role
+                )
+                print(f'Created: {email}')
+        else:
+            print(f'Users already exist, skipping seed')
 
     await conn.close()
     print('DB setup complete!')
