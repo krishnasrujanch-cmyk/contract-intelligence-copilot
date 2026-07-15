@@ -28,3 +28,9 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 # Pre-download spaCy model
 RUN python -m spacy download en_core_web_sm || true
+
+# Pre-download embedding model at build time
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" || true
+
+# Pre-download spaCy model
+RUN python -m spacy download en_core_web_sm || true
