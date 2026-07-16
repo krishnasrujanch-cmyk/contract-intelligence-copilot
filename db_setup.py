@@ -9,24 +9,32 @@ async def setup():
     conn = await asyncpg.connect(db_url)
     print('Connected!')
 
-    # Drop all tables
+    # Check if tables exist
     tables = await conn.fetch("SELECT tablename FROM pg_tables WHERE schemaname='public'")
-    for t in tables:
-        await conn.execute(f'DROP TABLE IF EXISTS {t[0]} CASCADE')
-    print('Dropped tables')
+    table_names = [t['tablename'] for t in tables]
 
-    # Create from SQLAlchemy models
-    from app.domain.models import Base
-    from sqlalchemy.schema import CreateTable
-    from sqlalchemy.dialects.postgresql import dialect as pg_dialect
-    d = pg_dialect()
-    for table in Base.metadata.sorted_tables:
-        try:
-            ddl = str(CreateTable(table).compile(dialect=d))
-            await conn.execute(ddl)
-            print(f'Created: {table.name}')
-        except Exception as e:
-            print(f'Skip {table.name}: {e}')
+    if 'users' not in table_names:
+        print('Creating tables...')
+        from app.domain.models import Base
+        from sqlalchemy.schema import CreateTable
+        from sqlalchemy.dialects.postgresql import dialect as pg_dialect
+        d = pg_dialect()
+        for table in Base.metadata.sorted_tables:
+            try:
+                ddl = str(CreateTable(table).compile(dialect=d))
+                await conn.execute(ddl)
+                print(f'Created: {table.name}')
+            except Exception as e:
+                print(f'Skip {table.name}: {e}')
+    else:
+        print('Tables exist')
+
+    # Ensure unique constraint on email
+    try:
+        await conn.execute("ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email)")
+        print('Added unique constraint')
+    except Exception:
+        pass
 
     # Get or create org
     org_row = await conn.fetchrow("SELECT id FROM organizations LIMIT 1")
@@ -41,18 +49,22 @@ async def setup():
     else:
         org_id = str(org_row['id'])
 
-    # Seed users with ON CONFLICT to prevent duplicates
+    # Seed users
     for email, name, password, role in [
         ('admin@clm.demo', 'Admin User', 'Admin@Demo2026!', 'admin'),
         ('reviewer@clm.demo', 'Reviewer User', 'Review@Demo2026!', 'reviewer'),
         ('viewer@clm.demo', 'Viewer User', 'View@Demo2026!', 'viewer'),
     ]:
-        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(12)).decode()
-        await conn.execute(
-            'INSERT INTO users (id, org_id, email, password_hash, full_name, role, is_active, login_attempts) VALUES ($1,$2,$3,$4,$5,$6,TRUE,0) ON CONFLICT (email) DO NOTHING',
-            str(uuid.uuid4()), org_id, email, hashed, name, role
-        )
-        print(f'User ready: {email}')
+        existing = await conn.fetchval("SELECT id FROM users WHERE email=$1", email)
+        if not existing:
+            hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(12)).decode()
+            await conn.execute(
+                'INSERT INTO users (id, org_id, email, password_hash, full_name, role, is_active, login_attempts) VALUES ($1,$2,$3,$4,$5,$6,TRUE,0)',
+                str(uuid.uuid4()), org_id, email, hashed, name, role
+            )
+            print(f'Created: {email}')
+        else:
+            print(f'Exists: {email}')
 
     await conn.close()
     print('DB setup complete!')
