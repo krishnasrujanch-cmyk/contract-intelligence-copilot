@@ -12,19 +12,18 @@ if [ ! -f /app/backend/keys/private.pem ]; then
     echo "JWT keys generated"
 fi
 
-# Fix DATABASE_URL for asyncpg
+# Fix DATABASE_URL
 if [ ! -z "$DATABASE_URL" ]; then
     export DATABASE_URL=$(echo "$DATABASE_URL" | \
         sed 's|^postgres://|postgresql+asyncpg://|' | \
         sed 's|^postgresql://|postgresql+asyncpg://|')
-    echo "DB URL configured"
 fi
 
 cd /app/backend
 
-# Setup database using Python file (not heredoc)
-python /app/db_setup.py
+# Run DB setup in background so server starts immediately
+python /app/db_setup.py &
 
-# Start server
+# Start server immediately - don't wait for DB setup
 echo "Starting on port ${PORT:-8080}..."
 exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1
