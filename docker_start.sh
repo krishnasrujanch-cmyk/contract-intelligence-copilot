@@ -8,8 +8,8 @@ mkdir -p /app/uploads /app/chroma_data /app/backend/keys
 # Generate JWT keys
 if [ ! -f /app/backend/keys/private.pem ]; then
     openssl genrsa -out /app/backend/keys/private.pem 2048
-    openssl rsa -in /app/backend/keys/private.pem -pubout -out /app/backend/keys/public.pem
-    echo "JWT keys generated"
+    openssl rsa -in /app/backend/keys/private.pem -pubout \
+        -out /app/backend/keys/public.pem
 fi
 
 # Fix DATABASE_URL
@@ -21,9 +21,8 @@ fi
 
 cd /app/backend
 
-# Run DB setup in background so server starts immediately
+# Run DB setup in background
 python /app/db_setup.py &
 
-# Start server immediately - don't wait for DB setup
 echo "Starting on port ${PORT:-8080}..."
 exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1

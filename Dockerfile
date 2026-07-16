@@ -10,9 +10,17 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download sentence-transformers model (baked into image)
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" || true
+
+# Use SMALL spaCy model (12MB not 400MB)
+RUN python -m spacy download en_core_web_sm || true
+
+# Copy app
 COPY backend/ ./backend/
 COPY frontend/dist/ ./frontend/dist/
 COPY docker_start.sh .
@@ -22,15 +30,3 @@ RUN chmod +x docker_start.sh
 
 EXPOSE 8080
 CMD ["bash", "docker_start.sh"]
-
-# Pre-download embedding model at build time
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" || true
-
-# Pre-download spaCy model
-RUN python -m spacy download en_core_web_sm || true
-
-# Pre-download embedding model at build time
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" || true
-
-# Pre-download spaCy model
-RUN python -m spacy download en_core_web_sm || true
