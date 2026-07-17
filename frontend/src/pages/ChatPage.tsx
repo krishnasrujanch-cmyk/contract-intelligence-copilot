@@ -181,7 +181,10 @@ export default function ChatPage() {
           </span>
           <select
             value={selectedContractId}
-            onChange={e => setSelectedContractId(e.target.value)}
+            onChange={e => {
+              setSelectedContractId(e.target.value);
+              if (e.target.value) loadHistory(e.target.value);
+            }}
             style={{ flex:1, padding:"6px 10px", border:"1px solid #e2e8f0", borderRadius:8,
                      fontSize:"0.8rem", color:"#374151", background:"#fff", cursor:"pointer" }}>
             <option value="">All contracts</option>

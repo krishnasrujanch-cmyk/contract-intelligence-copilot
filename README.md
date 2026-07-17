@@ -319,6 +319,9 @@ gcloud builds submit \
 
 bash /tmp/deploy.sh
 
+TO update GROQ Key
+gcloud run services update contract-intelligence-copilot --region us-central1 --project contractintelliegenceplatform --update-env-vars "GROQ_API_KEY=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"
+
 ## Author
 
 **Srujan Krishna** — Senior Java Architect and Agentic AI Engineer
