@@ -262,6 +262,15 @@ railway login && railway init && railway up
 
 ---
 
+Logging
+cd /Users/srujan/Downloads/PYTHON/contract-intelligence-copilot
+bash tail_logs.sh
+
+Google cloud login
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project contractintelliegenceplatform
+
 ## Author
 
 **Srujan Krishna** — Senior Java Architect and Agentic AI Engineer

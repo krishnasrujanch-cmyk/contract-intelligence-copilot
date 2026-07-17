@@ -57,7 +57,7 @@ async def initialise_pii_engine() -> None:
     except ImportError:
         logger.warning(
             "presidio_not_installed_pii_masking_disabled",
-            hint="pip install presidio-analyzer presidio-anonymizer spacy && python -m spacy download en_core_web_lg",
+            hint="pip install presidio-analyzer presidio-anonymizer spacy && python -m spacy download en_core_web_sm",
         )
 
     except Exception as exc:
