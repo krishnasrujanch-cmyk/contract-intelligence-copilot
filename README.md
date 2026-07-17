@@ -262,6 +262,46 @@ railway login && railway init && railway up
 
 ---
 
+How It Works — Simple Terms
+Upload Flow
+
+
+You upload PDF
+    ↓
+FastAPI saves file to /app/uploads
+    ↓
+Parser reads PDF text (PyMuPDF)
+    ↓
+Presidio masks PII (names, emails, phones)
+    ↓
+Groq LLM extracts clauses → JSON
+    ↓
+Clauses saved to PostgreSQL (Neon)
+    ↓
+Text split into chunks → embedded → saved to ChromaDB
+
+Chat Flow
+
+You ask a question
+    ↓
+Question converted to embedding (sentence-transformers, NO Groq)
+    ↓
+ChromaDB finds similar chunks (vector search)
+    ↓
+Groq LLM reads chunks + answers your question
+
+| **Step**             | **What Runs**                 | **Groq Needed?** |
+| -------------------- | ----------------------------- | ---------------- |
+| PDF Parsing          | PyMuPDF (local)               | ❌ No             |
+| PII Masking          | spaCy + Presidio (local)      | ❌ No             |
+| Clause Extraction    | Groq LLM                      | ✅ Yes            |
+| Risk Scoring         | Groq LLM                      | ✅ Yes            |
+| Embedding for Search | sentence-transformers (local) | ❌ No             |
+| Chat Answers         | Groq LLM                      | ✅ Yes            |
+
+
+
+
 Logging
 cd /Users/srujan/Downloads/PYTHON/contract-intelligence-copilot
 bash tail_logs.sh
@@ -270,6 +310,14 @@ Google cloud login
 gcloud auth login
 gcloud auth application-default login
 gcloud config set project contractintelliegenceplatform
+
+GCP deployment
+
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/contractintelliegenceplatform/contract-intelligence/copilot:latest \
+  --project contractintelliegenceplatform .
+
+bash /tmp/deploy.sh
 
 ## Author
 

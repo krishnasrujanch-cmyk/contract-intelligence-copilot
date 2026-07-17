@@ -90,6 +90,25 @@ function renderBold(text: string): React.ReactNode {
 }
 
 export default function ChatPage() {
+  const loadHistory = async (cid: string) => {
+    try {
+      const res = await apiClient.get(`/api/v1/chat/history?contract_id=${cid}&limit=20`);
+      if (res.data && res.data.length > 0) {
+        const history: Msg[] = res.data.map((m: any, i: number) => ({
+          id: `hist-${i}`,
+          role: m.role as "user"|"assistant",
+          content: m.content,
+        }));
+        setMsgs([
+          { id:"w", role:"assistant", content:"Welcome back! Continuing your previous conversation:" },
+          ...history
+        ]);
+      }
+    } catch (e) {
+      // No history yet — keep default message
+    }
+  };
+
   const [msgs, setMsgs] = useState<Msg[]>([{ id:"w", role:"assistant", content:"Hello! Ask me anything about your contracts — liability caps, renewal dates, payment terms, risks." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

@@ -149,3 +149,32 @@ async def chat_query(
         citations=citations,
         confidence=rag_result.get("confidence", 0.0),
     )
+
+
+@router.get("/history")
+async def get_chat_history(
+    contract_id: str | None = None,
+    limit: int = 50,
+    current_user: CurrentUser = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get persistent conversation history for current user."""
+    from sqlalchemy import text
+    try:
+        if contract_id:
+            result = await db.execute(
+                text("SELECT role, content, created_at, contract_id, session_id FROM conversations WHERE user_id=:uid AND contract_id=:cid ORDER BY created_at ASC LIMIT :limit"),
+                {"uid": str(current_user.id), "cid": contract_id, "limit": limit}
+            )
+        else:
+            result = await db.execute(
+                text("SELECT role, content, created_at, contract_id, session_id FROM conversations WHERE user_id=:uid ORDER BY created_at DESC LIMIT :limit"),
+                {"uid": str(current_user.id), "limit": limit}
+            )
+        rows = result.fetchall()
+        return [{"role": r[0], "content": r[1],
+                 "created_at": r[2].isoformat() if r[2] else None,
+                 "contract_id": str(r[3]) if r[3] else None,
+                 "session_id": r[4]} for r in rows]
+    except Exception as e:
+        return []
