@@ -30,25 +30,41 @@ logger = get_logger(__name__)
 # ── JWT key loading ────────────────────────────────────────────────────────────
 
 def _load_private_key() -> str:
-    """Load RS256 private key from file system. Fails fast if missing."""
-    key_path = Path(settings.jwt_private_key_path)
-    if not key_path.exists():
-        raise FileNotFoundError(
-            f"JWT private key not found at {key_path}. "
-            "Run: openssl genrsa -out keys/private.pem 2048"
-        )
-    return key_path.read_text(encoding="utf-8")
+    """Load RS256 private key from env var (base64) or file system."""
+    import os, base64
+    # Try env var first (Cloud Run)
+    b64 = os.environ.get("JWT_PRIVATE_KEY_B64", "")
+    if b64:
+        return base64.b64decode(b64).decode("utf-8")
+    # Try multiple file paths
+    for p in [
+        settings.jwt_private_key_path,
+        Path("/app/backend/keys/private.pem"),
+        Path("/app/keys/private.pem"),
+        Path("keys/private.pem"),
+    ]:
+        if Path(p).exists():
+            return Path(p).read_text(encoding="utf-8")
+    raise FileNotFoundError("JWT private key not found. Set JWT_PRIVATE_KEY_B64 env var.")
 
 
 def _load_public_key() -> str:
-    """Load RS256 public key from file system."""
-    key_path = Path(settings.jwt_public_key_path)
-    if not key_path.exists():
-        raise FileNotFoundError(
-            f"JWT public key not found at {key_path}. "
-            "Run: openssl rsa -in keys/private.pem -pubout -out keys/public.pem"
-        )
-    return key_path.read_text(encoding="utf-8")
+    """Load RS256 public key from env var (base64) or file system."""
+    import os, base64
+    # Try env var first (Cloud Run)
+    b64 = os.environ.get("JWT_PUBLIC_KEY_B64", "")
+    if b64:
+        return base64.b64decode(b64).decode("utf-8")
+    # Try multiple file paths
+    for p in [
+        settings.jwt_public_key_path,
+        Path("/app/backend/keys/public.pem"),
+        Path("/app/keys/public.pem"),
+        Path("keys/public.pem"),
+    ]:
+        if Path(p).exists():
+            return Path(p).read_text(encoding="utf-8")
+    raise FileNotFoundError("JWT public key not found. Set JWT_PUBLIC_KEY_B64 env var.")
 
 
 # Load keys once at module import — fail fast if missing in production
