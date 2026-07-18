@@ -14,5 +14,8 @@ fi
 
 cd /app/backend
 python /app/db_setup.py &
+
+# Re-index all analyzed contracts into ChromaDB
+python /app/reindex.py &
 echo "Starting server on port ${PORT:-8080}..."
 exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1
