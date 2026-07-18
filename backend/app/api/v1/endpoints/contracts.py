@@ -259,12 +259,42 @@ async def _extract_and_save(
         "\"risk_reason\": \"...\", \"confidence\": 0.9}]}"
     )
 
-    result = await router.invoke(
-        AgentRole.EXTRACTOR,
-        [SystemMessage(content=prompt), HumanMessage(content=masked)],
-    )
-    raw = result.content if hasattr(result, "content") else str(result)
-    clauses_data = parse_clauses(raw)
+    # Chunk contract to handle Groq token limits (full content indexed)
+    import asyncio as _asyncio
+    chunk_size = 6000
+    overlap = 300
+    chunks = []
+    i = 0
+    while i < len(masked):
+        chunks.append(masked[i:i+chunk_size])
+        i += chunk_size - overlap
+    if not chunks:
+        chunks = [masked]
+
+    clauses_data = []
+    for idx, chunk in enumerate(chunks):
+        try:
+            if idx > 0:
+                await _asyncio.sleep(3)  # Avoid Groq rate limits
+            result = await router.invoke(
+                AgentRole.EXTRACTOR,
+                [SystemMessage(content=prompt), HumanMessage(content=chunk)],
+            )
+            raw = result.content if hasattr(result, "content") else str(result)
+            clauses_data.extend(parse_clauses(raw))
+            logger.info("chunk_extracted", chunk=idx+1, total=len(chunks))
+        except Exception as e:
+            logger.warning("chunk_failed", chunk=idx+1, error=str(e))
+    
+    # Deduplicate clauses by title
+    seen = set()
+    unique_clauses = []
+    for c in clauses_data:
+        key = c.get("title","")[:50]
+        if key not in seen:
+            seen.add(key)
+            unique_clauses.append(c)
+    clauses_data = unique_clauses
     logger.info("clauses_extracted", count=len(clauses_data))
 
     # Save to DB + index ChromaDB with original (unmasked) text
