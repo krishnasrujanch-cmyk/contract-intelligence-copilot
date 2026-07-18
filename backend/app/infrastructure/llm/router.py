@@ -51,6 +51,11 @@ from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatResult
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    _GEMINI_AVAILABLE = True
+except ImportError:
+    _GEMINI_AVAILABLE = False
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -407,6 +412,24 @@ class LLMRouter:
                     return await llm.ainvoke(messages)  # type: ignore[return-value]
         except Exception as exc:
             raise LLMRouterError(f"Groq invocation failed: {exc}") from exc
+
+    async def _invoke_gemini(self, role, messages, metadata=None):
+        """Gemini fallback via Google Generative AI."""
+        import os
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if not gemini_key or not _GEMINI_AVAILABLE:
+            raise LLMRouterError("Gemini not available")
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-flash",
+                google_api_key=gemini_key,
+                max_tokens=4096,
+                temperature=0.1,
+            )
+            return await llm.ainvoke(messages)
+        except Exception as exc:
+            raise LLMRouterError(f"Gemini fallback failed: {exc}") from exc
 
     async def _invoke_openai(
         self,
